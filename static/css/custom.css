@@ -1,11 +1,11 @@
 /* T'ELEFAN MES 4.0 - Styles complementaires */
 
 /* Barres de couleur par categorie KPI */
-.kpi-bar-perf { background-color: #ff0000; }
-.kpi-bar-qualite { background-color: #38b6ff; }
-.kpi-bar-delai { background-color: #f2c0ff; }
-.kpi-bar-energie { background-color: #09b200; }
-.kpi-bar-stock { background-color: #737373; }
+.kpi-bar-perf { background-color: #dc2626; }
+.kpi-bar-qualite { background-color: #0284c7; }
+.kpi-bar-delai { background-color: #db2777; }
+.kpi-bar-energie { background-color: #16a34a; }
+.kpi-bar-stock { background-color: #52525b; }
 
 /* Animation clignotante pour alertes KPI */
 @keyframes alert-blink {

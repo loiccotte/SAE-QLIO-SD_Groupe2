@@ -20,9 +20,9 @@
     <!-- Taux d'occupation des buffers (Bar Chart) - 60% -->
     <div class="lg:col-span-3 bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-stock"></div>
+        <div class="h-1.5 kpi-bar-stock"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
                 Taux d'occupation des buffers
             </h3>
             <div id="buffer-occ-chart" class="plotly-chart" style="height: 340px;"></div>
@@ -32,9 +32,9 @@
     <!-- Variation du niveau de stock (Bar Chart) - 40% -->
     <div class="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-stock"></div>
+        <div class="h-1.5 kpi-bar-stock"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
                 Variation du niveau de stock
             </h3>
             <div id="stock-var-chart" class="plotly-chart" style="height: 340px;"></div>
@@ -75,7 +75,7 @@
     var boData = {{ buffer_occ.by_buffer | tojson }};
     if (boData && boData.length > 0) {
         var colors = boData.map(function(d) {
-            return d.rate > 90 ? '#ef4444' : '#737373';
+            return d.rate > 90 ? '#ef4444' : '#52525b';
         });
         var annotations = [];
         boData.forEach(function(d, i) {
@@ -110,9 +110,9 @@
                 tickangle: -35
             },
             yaxis: {
-                title: { text: 'Occupation (%)', font: { size: 10, color: '#a1a1aa' } },
+                title: { text: 'Occupation (%)', font: { size: 10, color: '#71717a' } },
                 range: [0, 105],
-                tickfont: { size: 10, color: '#a1a1aa' },
+                tickfont: { size: 10, color: '#71717a' },
                 gridcolor: '#f4f4f5',
                 ticksuffix: '%'
             },
@@ -137,7 +137,7 @@
             x: svData.map(function(d) { return d.buffer; }),
             y: svData.map(function(d) { return d.variation_pct; }),
             marker: {
-                color: '#737373',
+                color: '#52525b',
                 line: { width: 0 }
             },
             text: svData.map(function(d) { return d.variation_pct.toFixed(1) + '%'; }),
@@ -150,9 +150,9 @@
                 tickangle: -35
             },
             yaxis: {
-                title: { text: 'Variation (%)', font: { size: 10, color: '#a1a1aa' } },
+                title: { text: 'Variation (%)', font: { size: 10, color: '#71717a' } },
                 range: [0, 10],
-                tickfont: { size: 10, color: '#a1a1aa' },
+                tickfont: { size: 10, color: '#71717a' },
                 gridcolor: '#f4f4f5',
                 ticksuffix: '%'
             },

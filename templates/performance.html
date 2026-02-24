@@ -20,9 +20,9 @@
     <!-- OEE Gauge -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-perf"></div>
+        <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
                 OEE - Taux de Rendement Global
             </h3>
             <div id="oee-gauge" class="plotly-chart" style="height: 260px;"></div>
@@ -47,9 +47,9 @@
     <!-- Taux d'utilisation machine (Bar Chart) -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-perf"></div>
+        <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
                 Taux d'utilisation machine
             </h3>
             <div id="utilization-chart" class="plotly-chart" style="height: 320px;"></div>
@@ -59,9 +59,9 @@
     <!-- Cadence reelle (Line Chart) -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-perf"></div>
+        <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
                 Cadence reelle
             </h3>
             <div id="throughput-chart" class="plotly-chart" style="height: 280px;"></div>
@@ -71,9 +71,9 @@
     <!-- Temps moyen de cycle (Large Value) -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-perf"></div>
+        <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6 flex flex-col items-center justify-center min-h-[340px]">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-8">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-8">
                 Temps moyen de cycle
             </h3>
             <div class="flex items-baseline gap-2">
@@ -120,7 +120,7 @@
                 tickcolor: '#d4d4d8',
                 dtick: 20
             },
-            bar: { color: '#ef4444', thickness: 0.75 },
+            bar: { color: '#dc2626', thickness: 0.75 },
             bgcolor: '#f4f4f5',
             borderwidth: 0,
             steps: [
@@ -149,7 +149,7 @@
             y: utilData.map(function(d) { return d.value; }),
             marker: {
                 color: utilData.map(function(d) {
-                    if (d.value > 90) return '#ef4444';
+                    if (d.value > 90) return '#dc2626';
                     if (d.value > 70) return '#f87171';
                     return '#fca5a5';
                 }),
@@ -165,9 +165,9 @@
                 tickangle: -35
             },
             yaxis: {
-                title: { text: 'Utilisation (%)', font: { size: 10, color: '#a1a1aa' } },
+                title: { text: 'Utilisation (%)', font: { size: 10, color: '#71717a' } },
                 range: [0, 105],
-                tickfont: { size: 10, color: '#a1a1aa' },
+                tickfont: { size: 10, color: '#71717a' },
                 gridcolor: '#f4f4f5'
             },
             margin: { t: 10, b: 90, l: 45, r: 10 },
@@ -186,10 +186,10 @@
             mode: 'lines+markers',
             x: tpData.map(function(d) { return d.month; }),
             y: tpData.map(function(d) { return d.value; }),
-            line: { color: '#ef4444', width: 2, shape: 'spline' },
-            marker: { size: 6, color: '#ef4444' },
+            line: { color: '#dc2626', width: 2, shape: 'spline' },
+            marker: { size: 6, color: '#dc2626' },
             fill: 'tozeroy',
-            fillcolor: 'rgba(239, 68, 68, 0.05)',
+            fillcolor: 'rgba(220, 38, 38, 0.07)',
             hovertemplate: '%{x}<br>%{y} pieces<extra></extra>'
         }], {
             xaxis: {
@@ -197,8 +197,8 @@
                 tickangle: -30
             },
             yaxis: {
-                title: { text: 'Pieces produites', font: { size: 10, color: '#a1a1aa' } },
-                tickfont: { size: 10, color: '#a1a1aa' },
+                title: { text: 'Pieces produites', font: { size: 10, color: '#71717a' } },
+                tickfont: { size: 10, color: '#71717a' },
                 gridcolor: '#f4f4f5'
             },
             margin: { t: 10, b: 60, l: 50, r: 10 },

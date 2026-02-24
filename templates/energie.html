@@ -20,9 +20,9 @@
     <!-- Consommation energetique (Line Chart) - 60% -->
     <div class="lg:col-span-3 bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-energie"></div>
+        <div class="h-1.5 kpi-bar-energie"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
                 Consommation energetique
             </h3>
             <div id="energy-timeline-chart" class="plotly-chart" style="height: 320px;"></div>
@@ -32,9 +32,9 @@
     <!-- Consommation Air comprime (Gauge) - 40% -->
     <div class="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1 kpi-bar-energie"></div>
+        <div class="h-1.5 kpi-bar-energie"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
                 Consommation Air comprime
             </h3>
             <div id="air-gauge" class="plotly-chart" style="height: 280px;"></div>
@@ -70,19 +70,19 @@
             mode: 'lines+markers',
             x: tlData.map(function(d) { return d.period; }),
             y: tlData.map(function(d) { return d.kwh; }),
-            line: { color: '#09b200', width: 2, shape: 'spline' },
-            marker: { size: 7, color: '#09b200' },
+            line: { color: '#16a34a', width: 2, shape: 'spline' },
+            marker: { size: 7, color: '#16a34a' },
             fill: 'tozeroy',
-            fillcolor: 'rgba(9, 178, 0, 0.05)',
+            fillcolor: 'rgba(22, 163, 74, 0.08)',
             hovertemplate: '%{x}<br>%{y} Wh<extra></extra>'
         }], {
             xaxis: {
-                title: { text: 'Heure', font: { size: 10, color: '#a1a1aa' } },
+                title: { text: 'Heure', font: { size: 10, color: '#71717a' } },
                 tickfont: { size: 10, color: '#71717a' }
             },
             yaxis: {
-                title: { text: 'Consommation (Wh)', font: { size: 10, color: '#a1a1aa' } },
-                tickfont: { size: 10, color: '#a1a1aa' },
+                title: { text: 'Consommation (Wh)', font: { size: 10, color: '#71717a' } },
+                tickfont: { size: 10, color: '#71717a' },
                 gridcolor: '#f4f4f5',
                 rangemode: 'tozero'
             },
@@ -118,7 +118,7 @@
                 tickwidth: 1,
                 tickcolor: '#d4d4d8'
             },
-            bar: { color: '#09b200', thickness: 0.75 },
+            bar: { color: '#16a34a', thickness: 0.75 },
             bgcolor: '#f4f4f5',
             borderwidth: 0,
             steps: [
