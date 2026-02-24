@@ -1,25 +1,28 @@
 # ============================================================
 # Dependances Python — T'ELEFAN MES 4.0
+# Versions testees sur Python 3.10 / Windows 10
 # ============================================================
 
 # --- Framework web ---
-flask                   # Framework web principal
-flask-sqlalchemy        # ORM SQLAlchemy integre a Flask
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
 
 # --- Base de donnees ---
-pymysql                 # Connecteur Python pour MariaDB/MySQL
+PyMySQL==1.1.1                 # Connecteur Python pur pour MariaDB/MySQL
 
 # --- Configuration ---
-python-dotenv           # Chargement des variables d'environnement (.env)
+python-dotenv==1.0.1           # Chargement des variables d'environnement (.env)
 
 # --- Traitement de donnees ---
-pandas                  # Manipulation de DataFrames (calcul KPIs)
-plotly                  # Graphiques interactifs (utilise cote client via CDN)
+pandas==2.2.2                  # Manipulation de DataFrames (calcul KPIs)
+plotly==5.22.0                 # Graphiques interactifs (utilise cote client via CDN)
 
 # --- Export ---
-openpyxl                # Generation de fichiers Excel (.xlsx)
-weasyprint              # Conversion HTML -> PDF (optionnel, fallback HTML)
+openpyxl==3.1.3                # Generation de fichiers Excel (.xlsx)
+weasyprint==62.3               # Conversion HTML -> PDF
+                               # /!\ Windows : necessite GTK3 (voir docs/INSTALLATION_VENV.md)
+                               #     Si non installe, l'export bascule automatiquement en HTML
 
 # --- Tests ---
-pytest                  # Framework de tests unitaires
-pytest-flask            # Fixtures Flask pour pytest (client HTTP, app context)
+pytest==8.2.2                  # Framework de tests unitaires
+pytest-flask==1.3.0            # Fixtures Flask pour pytest (client HTTP, app context)
