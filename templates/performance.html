@@ -176,6 +176,10 @@
             bargap: 0.35,
             height: 320
         }, { responsive: true, displayModeBar: false });
+    } else {
+        document.getElementById('utilization-chart').innerHTML =
+            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
+            'Aucune donnee d\'utilisation machine disponible</div>';
     }
 
     // --- Throughput Line Chart ---
@@ -206,6 +210,10 @@
             plot_bgcolor: 'transparent',
             height: 280
         }, { responsive: true, displayModeBar: false });
+    } else {
+        document.getElementById('throughput-chart').innerHTML =
+            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
+            'Aucune donnee de cadence disponible</div>';
     }
 </script>
 {% endblock %}

@@ -50,6 +50,10 @@ def create_app() -> Flask:
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-prod')
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,   # Teste chaque connexion avant utilisation
+        'pool_recycle': 300,     # Recycle les connexions toutes les 5 min
+    }
 
     db.init_app(app)
 
@@ -82,11 +86,15 @@ def _wait_for_database(app: Flask) -> None:
     Args:
         app: L'instance Flask (necessaire pour le contexte applicatif).
     """
+    from sqlalchemy import text
+
     with app.app_context():
         for attempt in range(DB_CONNECT_RETRIES):
             try:
-                db.engine.connect()
+                with db.engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
                 logger.info("Connexion BDD reussie.")
+                _log_data_summary(app)
                 return
             except Exception as exc:
                 if attempt < DB_CONNECT_RETRIES - 1:
@@ -100,3 +108,26 @@ def _wait_for_database(app: Flask) -> None:
                         "BDD inaccessible apres %d tentatives : %s",
                         DB_CONNECT_RETRIES, exc,
                     )
+
+
+def _log_data_summary(app: Flask) -> None:
+    """Affiche un resume des donnees presentes dans la BDD au demarrage."""
+    from sqlalchemy import text
+
+    tables = [
+        ('tblmachinereport', 'Etats machine'),
+        ('tblfinstep', 'Etapes de production'),
+        ('tblfinorder', 'Ordres de fabrication'),
+        ('tblfinorderpos', 'Pieces produites'),
+        ('tblpartsreport', 'Rapports detection'),
+    ]
+    with app.app_context():
+        try:
+            with db.engine.connect() as conn:
+                for table, label in tables:
+                    row = conn.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar()
+                    logger.info("  %s (%s) : %d lignes", table, label, row)
+                    if row == 0:
+                        logger.warning("  ATTENTION : %s est vide !", table)
+        except Exception as exc:
+            logger.warning("Impossible de verifier les donnees : %s", exc)

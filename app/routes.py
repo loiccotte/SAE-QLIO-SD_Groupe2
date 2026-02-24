@@ -116,6 +116,10 @@ def performance():
         current_app.logger.error(f"calculate_cycle_time failed: {e}")
         cycle_time = _KPI_ERROR.copy()
 
+    kpis_perf = [oee, utilization, throughput, cycle_time]
+    if any(isinstance(k, dict) and k.get('status') == 'error' for k in kpis_perf):
+        flash("Certains indicateurs sont temporairement indisponibles.", "warning")
+
     return render_template(
         'performance.html',
         oee=oee,
@@ -141,6 +145,9 @@ def qualite():
         current_app.logger.error(f"calculate_detection_time failed: {e}")
         detection_time = _KPI_ERROR.copy()
 
+    if any(isinstance(k, dict) and k.get('status') == 'error' for k in [non_conformity, detection_time]):
+        flash("Certains indicateurs sont temporairement indisponibles.", "warning")
+
     return render_template(
         'qualite.html',
         non_conformity=non_conformity,
@@ -164,6 +171,9 @@ def delai():
         current_app.logger.error(f"calculate_buffer_wait_time failed: {e}")
         buffer_wait = _KPI_ERROR.copy()
 
+    if any(isinstance(k, dict) and k.get('status') == 'error' for k in [lead_time, buffer_wait]):
+        flash("Certains indicateurs sont temporairement indisponibles.", "warning")
+
     return render_template(
         'delai.html',
         lead_time=lead_time,
@@ -180,6 +190,9 @@ def energie():
     except Exception as e:
         current_app.logger.error(f"calculate_energy_summary failed: {e}")
         energy = _KPI_ERROR.copy()
+
+    if isinstance(energy, dict) and energy.get('status') == 'error':
+        flash("Certains indicateurs sont temporairement indisponibles.", "warning")
 
     return render_template(
         'energie.html',
@@ -202,6 +215,9 @@ def stock():
     except Exception as e:
         current_app.logger.error(f"calculate_stock_variation failed: {e}")
         stock_var = _KPI_ERROR.copy()
+
+    if any(isinstance(k, dict) and k.get('status') == 'error' for k in [buffer_occ, stock_var]):
+        flash("Certains indicateurs sont temporairement indisponibles.", "warning")
 
     return render_template(
         'stock.html',
