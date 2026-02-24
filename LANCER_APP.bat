@@ -24,6 +24,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: Verifications de chemin (ignorees en mode CI — environnement controle)
+if "%INTERACTIVE%"=="0" goto skip_path_checks
+
 :: Detecter un chemin UNC (\\serveur\partage) — Docker ne peut pas monter ces chemins
 set SCRIPT_PATH=%~dp0
 if "!SCRIPT_PATH:~0,2!"=="\\" (
@@ -35,7 +38,7 @@ if "!SCRIPT_PATH:~0,2!"=="\\" (
     echo          puis relancez ce fichier.
     echo.
     popd
-    if "%INTERACTIVE%"=="1" pause
+    pause
     exit /b 1
 )
 
@@ -51,6 +54,8 @@ if /i not "%DRIVE_LETTER%"=="E:" (
     echo                 En cas d'erreur, copiez le projet sur C:\ et relancez.
     echo.
 ))))
+
+:skip_path_checks
 
 :: ----------------------------------------------------------------
 :: ETAPE 1 — Verifier que Docker est installe
