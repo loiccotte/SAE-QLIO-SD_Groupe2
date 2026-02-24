@@ -26,12 +26,14 @@ Correspondance Route <-> KPIs affiches
 +-----------------+------------------------------------------------------------+
 """
 
-from flask import Blueprint, jsonify, redirect, render_template, url_for
+from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, url_for
 
 from . import services
 from .auth import login_required
 
 bp = Blueprint('main', __name__)
+
+_KPI_ERROR = {'value': None, 'status': 'error', 'error': True}
 
 
 @bp.route('/')
@@ -48,13 +50,41 @@ def dashboard():
     Affiche un resume de chaque categorie sous forme de cartes
     cliquables renvoyant vers les pages de detail.
     """
-    kpis = {
-        'oee': services.calculate_oee(),
-        'non_conformity': services.calculate_non_conformity(),
-        'lead_time': services.calculate_lead_time(),
-        'energy': services.calculate_energy_summary(),
-        'buffer': services.calculate_buffer_occupancy(),
-    }
+    kpis = {}
+
+    try:
+        kpis['oee'] = services.calculate_oee()
+    except Exception as e:
+        current_app.logger.error(f"calculate_oee failed: {e}")
+        kpis['oee'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['non_conformity'] = services.calculate_non_conformity()
+    except Exception as e:
+        current_app.logger.error(f"calculate_non_conformity failed: {e}")
+        kpis['non_conformity'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['lead_time'] = services.calculate_lead_time()
+    except Exception as e:
+        current_app.logger.error(f"calculate_lead_time failed: {e}")
+        kpis['lead_time'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['energy'] = services.calculate_energy_summary()
+    except Exception as e:
+        current_app.logger.error(f"calculate_energy_summary failed: {e}")
+        kpis['energy'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['buffer'] = services.calculate_buffer_occupancy()
+    except Exception as e:
+        current_app.logger.error(f"calculate_buffer_occupancy failed: {e}")
+        kpis['buffer'] = _KPI_ERROR.copy()
+
+    if any(v.get('status') == 'error' for v in kpis.values()):
+        flash("Certains indicateurs sont temporairement indisponibles.", "warning")
+
     return render_template('dashboard.html', kpis=kpis)
 
 
@@ -62,12 +92,36 @@ def dashboard():
 @login_required
 def performance():
     """Page detail Performance : OEE, utilisation machine, cadence, temps de cycle."""
+    try:
+        oee = services.calculate_oee()
+    except Exception as e:
+        current_app.logger.error(f"calculate_oee failed: {e}")
+        oee = _KPI_ERROR.copy()
+
+    try:
+        utilization = services.calculate_utilization()
+    except Exception as e:
+        current_app.logger.error(f"calculate_utilization failed: {e}")
+        utilization = _KPI_ERROR.copy()
+
+    try:
+        throughput = services.calculate_throughput()
+    except Exception as e:
+        current_app.logger.error(f"calculate_throughput failed: {e}")
+        throughput = _KPI_ERROR.copy()
+
+    try:
+        cycle_time = services.calculate_cycle_time()
+    except Exception as e:
+        current_app.logger.error(f"calculate_cycle_time failed: {e}")
+        cycle_time = _KPI_ERROR.copy()
+
     return render_template(
         'performance.html',
-        oee=services.calculate_oee(),
-        utilization=services.calculate_utilization(),
-        throughput=services.calculate_throughput(),
-        cycle_time=services.calculate_cycle_time(),
+        oee=oee,
+        utilization=utilization,
+        throughput=throughput,
+        cycle_time=cycle_time,
     )
 
 
@@ -75,10 +129,22 @@ def performance():
 @login_required
 def qualite():
     """Page detail Qualite : taux de non-conformite, temps de detection."""
+    try:
+        non_conformity = services.calculate_non_conformity()
+    except Exception as e:
+        current_app.logger.error(f"calculate_non_conformity failed: {e}")
+        non_conformity = _KPI_ERROR.copy()
+
+    try:
+        detection_time = services.calculate_detection_time()
+    except Exception as e:
+        current_app.logger.error(f"calculate_detection_time failed: {e}")
+        detection_time = _KPI_ERROR.copy()
+
     return render_template(
         'qualite.html',
-        non_conformity=services.calculate_non_conformity(),
-        detection_time=services.calculate_detection_time(),
+        non_conformity=non_conformity,
+        detection_time=detection_time,
     )
 
 
@@ -86,10 +152,22 @@ def qualite():
 @login_required
 def delai():
     """Page detail Delai : lead time, temps d'attente buffer."""
+    try:
+        lead_time = services.calculate_lead_time()
+    except Exception as e:
+        current_app.logger.error(f"calculate_lead_time failed: {e}")
+        lead_time = _KPI_ERROR.copy()
+
+    try:
+        buffer_wait = services.calculate_buffer_wait_time()
+    except Exception as e:
+        current_app.logger.error(f"calculate_buffer_wait_time failed: {e}")
+        buffer_wait = _KPI_ERROR.copy()
+
     return render_template(
         'delai.html',
-        lead_time=services.calculate_lead_time(),
-        buffer_wait=services.calculate_buffer_wait_time(),
+        lead_time=lead_time,
+        buffer_wait=buffer_wait,
     )
 
 
@@ -97,9 +175,15 @@ def delai():
 @login_required
 def energie():
     """Page detail Energie : consommation electrique et air comprime."""
+    try:
+        energy = services.calculate_energy_summary()
+    except Exception as e:
+        current_app.logger.error(f"calculate_energy_summary failed: {e}")
+        energy = _KPI_ERROR.copy()
+
     return render_template(
         'energie.html',
-        energy=services.calculate_energy_summary(),
+        energy=energy,
     )
 
 
@@ -107,10 +191,22 @@ def energie():
 @login_required
 def stock():
     """Page detail Stock : occupation des buffers, variation de stock."""
+    try:
+        buffer_occ = services.calculate_buffer_occupancy()
+    except Exception as e:
+        current_app.logger.error(f"calculate_buffer_occupancy failed: {e}")
+        buffer_occ = _KPI_ERROR.copy()
+
+    try:
+        stock_var = services.calculate_stock_variation()
+    except Exception as e:
+        current_app.logger.error(f"calculate_stock_variation failed: {e}")
+        stock_var = _KPI_ERROR.copy()
+
     return render_template(
         'stock.html',
-        buffer_occ=services.calculate_buffer_occupancy(),
-        stock_var=services.calculate_stock_variation(),
+        buffer_occ=buffer_occ,
+        stock_var=stock_var,
     )
 
 
@@ -118,11 +214,39 @@ def stock():
 @login_required
 def api_kpis():
     """Endpoint JSON renvoyant les KPIs du dashboard (usage AJAX futur)."""
-    kpis = {
-        'oee': services.calculate_oee(),
-        'non_conformity': services.calculate_non_conformity(),
-        'lead_time': services.calculate_lead_time(),
-        'energy': services.calculate_energy_summary(),
-        'buffer': services.calculate_buffer_occupancy(),
-    }
+    kpis = {}
+
+    try:
+        kpis['oee'] = services.calculate_oee()
+    except Exception as e:
+        current_app.logger.error(f"calculate_oee failed: {e}")
+        kpis['oee'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['non_conformity'] = services.calculate_non_conformity()
+    except Exception as e:
+        current_app.logger.error(f"calculate_non_conformity failed: {e}")
+        kpis['non_conformity'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['lead_time'] = services.calculate_lead_time()
+    except Exception as e:
+        current_app.logger.error(f"calculate_lead_time failed: {e}")
+        kpis['lead_time'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['energy'] = services.calculate_energy_summary()
+    except Exception as e:
+        current_app.logger.error(f"calculate_energy_summary failed: {e}")
+        kpis['energy'] = _KPI_ERROR.copy()
+
+    try:
+        kpis['buffer'] = services.calculate_buffer_occupancy()
+    except Exception as e:
+        current_app.logger.error(f"calculate_buffer_occupancy failed: {e}")
+        kpis['buffer'] = _KPI_ERROR.copy()
+
+    if all(v.get('status') == 'error' for v in kpis.values()):
+        return jsonify(kpis), 500
+
     return jsonify(kpis)

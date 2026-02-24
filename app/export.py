@@ -17,7 +17,7 @@ import io
 import logging
 from datetime import datetime
 
-from flask import Blueprint, request, send_file
+from flask import Blueprint, flash, request, send_file
 
 from . import services
 from .auth import login_required, role_required
@@ -262,6 +262,7 @@ def export_excel():
     wb.save(output)
     output.seek(0)
 
+    flash("Export généré avec succès.", "success")
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -296,15 +297,17 @@ def export_pdf():
         from weasyprint import HTML
         pdf_bytes = HTML(string=html_content).write_pdf()
         output = io.BytesIO(pdf_bytes)
+        flash("Export généré avec succès.", "success")
         return send_file(
             output,
             mimetype='application/pdf',
             as_attachment=True,
             download_name=_generate_filename('pdf'),
         )
-    except ImportError:
+    except (ImportError, OSError):
         logger.warning("weasyprint non installe, fallback vers export HTML.")
         output = io.BytesIO(html_content.encode('utf-8'))
+        flash("Export généré avec succès.", "success")
         return send_file(
             output,
             mimetype='text/html',
