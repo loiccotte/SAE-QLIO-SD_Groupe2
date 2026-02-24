@@ -27,11 +27,12 @@ if errorlevel 1 (
 :: Verifications de chemin (ignorees en mode CI — environnement controle)
 if "%INTERACTIVE%"=="0" goto skip_path_checks
 
-:: Detecter un chemin UNC (\\serveur\partage) — Docker ne peut pas monter ces chemins
-set SCRIPT_PATH=%~dp0
+:: Verifier si pushd a reussi a se placer dans le bon dossier
+:: (%CD% reflète le chemin courant APRES pushd, pas le chemin UNC d'origine)
+set SCRIPT_PATH=%CD%
 if "!SCRIPT_PATH:~0,2!"=="\\" (
     echo.
-    echo [ERREUR] Ce projet est sur un chemin reseau UNC : !SCRIPT_PATH!
+    echo [ERREUR] Impossible d'acceder au projet via le chemin reseau : %~dp0
     echo.
     echo          Docker ne peut pas monter des dossiers UNC comme volumes.
     echo          Copiez le projet sur un lecteur local (ex: C:\Projets\SAE-QLIO-SD)
@@ -42,16 +43,15 @@ if "!SCRIPT_PATH:~0,2!"=="\\" (
     exit /b 1
 )
 
-:: Avertissement chemin reseau mappe (ex: Z:\...)
-set DRIVE_LETTER=%~d0
+:: Avertissement si le lecteur courant n'est pas local connu (C/D/E)
+set DRIVE_LETTER=%SCRIPT_PATH:~0,2%
 if /i not "%DRIVE_LETTER%"=="C:" (
 if /i not "%DRIVE_LETTER%"=="D:" (
 if /i not "%DRIVE_LETTER%"=="E:" (
     echo.
-    echo [AVERTISSEMENT] Le projet se trouve sur le lecteur %DRIVE_LETTER%
-    echo                 Si c'est un lecteur reseau mappe, Docker risque de ne pas
-    echo                 pouvoir acceder aux fichiers (partage de lecteur non configure).
-    echo                 En cas d'erreur, copiez le projet sur C:\ et relancez.
+    echo [AVERTISSEMENT] Lecteur courant : %DRIVE_LETTER% (chemin reseau mappe)
+    echo                 Docker risque de ne pas pouvoir acceder aux fichiers.
+    echo                 En cas d'erreur de volume, copiez le projet sur C:\ et relancez.
     echo.
 ))))
 
