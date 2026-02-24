@@ -6,17 +6,18 @@ Projet SAE BUT3 Science des Donnees - Groupe 2.
 
 ## Prerequis
 
-- Docker & Docker Compose
-- Navigateur Chrome / Edge (recommande)
+- [Python 3.10+](https://www.python.org/downloads/) — cocher "Add Python to PATH" lors de l'installation
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — pour la base de donnees MariaDB
 
-## Installation et lancement
+## Lancement rapide
 
-```bash
-git clone <url-du-repo>
-cd SAE-QLIO-SD
-cp .env.example .env
-docker-compose up --build
 ```
+Double-cliquer sur LANCER_APP.bat
+```
+
+Le script cree automatiquement le venv, installe les dependances, demarre la base de donnees Docker et ouvre le navigateur sur http://localhost:5000.
+
+> Documentation complete : [docs/INSTALLATION_VENV.md](docs/INSTALLATION_VENV.md)
 
 ## Acces
 
@@ -55,17 +56,21 @@ SAE-QLIO-SD/
 │   ├── stock.html           # Detail Stock (occupation buffers, variation)
 │   └── 404.html             # Page d'erreur personnalisee (standalone)
 ├── static/css/custom.css    # Couleurs KPI, animations, responsive Plotly
+├── docs/
+│   ├── INSTALLATION_VENV.md # Documentation technique environnement
+│   ├── FONCTIONNALITES.md   # Documentation fonctionnalites WebApp
+│   └── ANALYTIQUE.md        # Documentation analytique KPIs
 ├── tests/
 │   ├── conftest.py          # Fixtures (app test SQLite, seed data, clients)
 │   ├── test_services.py     # Tests unitaires des 11 fonctions KPI
 │   ├── test_routes.py       # Tests fonctionnels (protection, rendu, RBAC export)
 │   └── test_auth.py         # Tests auth (login, logout, roles)
 ├── ressources/              # SQL init, maquettes, CDC, schema BDD
-├── instructions/            # Prompts sprint, design system
+├── LANCER_APP.bat           # Script de lancement Windows (double-clic)
 ├── docker-compose.yml       # 3 services : MariaDB + phpMyAdmin + Flask
 ├── Dockerfile               # Python 3.10-slim
-├── requirements.txt         # Dependances Python
-└── .env.example             # Variables d'environnement
+├── requirements.txt         # Dependances Python avec versions
+└── .env.example             # Variables d'environnement (modele)
 ```
 
 ## KPIs implementes (12)
@@ -89,14 +94,16 @@ SAE-QLIO-SD/
 - **Backend :** Flask 3.x + SQLAlchemy + Jinja2
 - **Frontend :** Tailwind CSS (CDN) + Plotly.js (CDN) + police Geist
 - **Base de donnees :** MariaDB 10.6 (schema MES4, 64 tables, lecture seule)
-- **Infrastructure :** Docker Compose (3 services)
+- **Infrastructure :** Docker Compose (base de donnees) + Python venv (application)
 - **Export :** openpyxl (Excel), weasyprint (PDF)
 - **Tests :** pytest + pytest-flask
 
 ## Lancement des tests
 
+Les tests utilisent SQLite en memoire — Docker n'est pas necessaire.
+
 ```bash
-pip install pytest pytest-flask
+.venv\Scripts\activate
 pytest tests/ -v
 ```
 
