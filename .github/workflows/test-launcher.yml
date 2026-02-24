@@ -1,0 +1,53 @@
+name: Test LANCER_APP.bat
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:   # declenchement manuel depuis l'onglet Actions
+
+jobs:
+  test-launcher:
+    runs-on: windows-latest   # machine Windows Server fraiche, Docker preinstalle, droits admin
+
+    steps:
+      - name: Checkout du depot
+        uses: actions/checkout@v4
+
+      - name: Verifier Docker disponible
+        run: docker --version && docker compose version
+        shell: cmd
+
+      - name: Lancer LANCER_APP.bat
+        run: LANCER_APP.bat
+        shell: cmd
+        timeout-minutes: 10
+        # CI=true est defini automatiquement par GitHub Actions
+        # Le bat detecte cette variable et saute les pause et l'ouverture du navigateur
+
+      - name: Verifier que l'app repond (HTTP 200 ou 302)
+        run: |
+          $response = Invoke-WebRequest -Uri "http://localhost:5000" -UseBasicParsing -MaximumRedirection 5
+          Write-Host "Status: $($response.StatusCode)"
+          if ($response.StatusCode -lt 400) {
+            Write-Host "[OK] Application accessible"
+          } else {
+            Write-Host "[ERREUR] Code HTTP inattendu : $($response.StatusCode)"
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Afficher les logs en cas d'echec
+        if: failure()
+        run: |
+          echo === Logs app ===
+          docker compose logs app
+          echo === Logs db ===
+          docker compose logs db
+        shell: cmd
+
+      - name: Nettoyage des conteneurs
+        if: always()
+        run: docker compose down -v
+        shell: cmd

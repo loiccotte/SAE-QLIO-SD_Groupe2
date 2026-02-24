@@ -1,8 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul 2>&1
-cd /d "%~dp0"
 title T'ELEFAN MES 4.0
+
+:: Detecter mode CI (GitHub Actions definit CI=true) — desactive pause et navigateur
+set INTERACTIVE=1
+if defined CI set INTERACTIVE=0
 
 echo.
 echo ============================================================
@@ -11,167 +14,267 @@ echo ============================================================
 echo.
 
 :: ----------------------------------------------------------------
-:: ETAPE 1 — Verifier que Python est installe
+:: INIT — Se placer dans le dossier du script (gere les chemins UNC)
 :: ----------------------------------------------------------------
-python --version >nul 2>&1
+pushd "%~dp0"
 if errorlevel 1 (
-    echo [ERREUR] Python n'est pas installe sur cette machine.
-    echo.
-    echo Pour l'installer :
-    echo   1. Aller sur https://www.python.org/downloads/
-    echo   2. Telecharger Python 3.10 ou superieur
-    echo   3. IMPORTANT : cocher "Add Python to PATH" lors de l'installation
-    echo   4. Relancer ce fichier
-    echo.
-    pause
+    echo [ERREUR] Impossible d'acceder au dossier du script.
+    echo          Verifiez que le chemin est accessible.
+    if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
 
-for /f "tokens=2" %%v in ('python --version 2^>^&1') do set PYVER=%%v
-echo [OK] Python %PYVER% detecte.
-
-:: ----------------------------------------------------------------
-:: ETAPE 2 — Creer l'environnement virtuel si absent
-:: ----------------------------------------------------------------
-if not exist ".venv\Scripts\activate.bat" (
+:: Detecter un chemin UNC (\\serveur\partage) — Docker ne peut pas monter ces chemins
+set SCRIPT_PATH=%~dp0
+if "!SCRIPT_PATH:~0,2!"=="\\" (
     echo.
-    echo [INFO] Premiere execution : creation de l'environnement Python...
-    echo        (cette etape ne s'effectue qu'une seule fois)
-    python -m venv .venv
-    if errorlevel 1 (
-        echo.
-        echo [ERREUR] Impossible de creer l'environnement virtuel.
-        echo          Verifiez que Python est bien installe avec "Add Python to PATH".
-        pause
-        exit /b 1
-    )
-    echo [OK] Environnement virtuel cree.
+    echo [ERREUR] Ce projet est sur un chemin reseau UNC : !SCRIPT_PATH!
+    echo.
+    echo          Docker ne peut pas monter des dossiers UNC comme volumes.
+    echo          Copiez le projet sur un lecteur local (ex: C:\Projets\SAE-QLIO-SD)
+    echo          puis relancez ce fichier.
+    echo.
+    popd
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
 )
 
-:: ----------------------------------------------------------------
-:: ETAPE 3 — Activer l'environnement virtuel
-:: ----------------------------------------------------------------
-call .venv\Scripts\activate.bat
-echo [OK] Environnement virtuel active.
+:: Avertissement chemin reseau mappe (ex: Z:\...)
+set DRIVE_LETTER=%~d0
+if /i not "%DRIVE_LETTER%"=="C:" (
+if /i not "%DRIVE_LETTER%"=="D:" (
+if /i not "%DRIVE_LETTER%"=="E:" (
+    echo.
+    echo [AVERTISSEMENT] Le projet se trouve sur le lecteur %DRIVE_LETTER%
+    echo                 Si c'est un lecteur reseau mappe, Docker risque de ne pas
+    echo                 pouvoir acceder aux fichiers (partage de lecteur non configure).
+    echo                 En cas d'erreur, copiez le projet sur C:\ et relancez.
+    echo.
+))))
 
 :: ----------------------------------------------------------------
-:: ETAPE 4 — Installer ou mettre a jour les dependances
+:: ETAPE 1 — Verifier que Docker est installe
+:: ----------------------------------------------------------------
+echo [INFO] Verification de Docker...
+docker --version >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo [INFO] Docker n'est pas installe sur cette machine.
+    echo.
+
+    :: Verifier si on a les droits administrateur
+    net session >nul 2>&1
+    set IS_ADMIN=0
+    if not errorlevel 1 set IS_ADMIN=1
+
+    :: Tenter une installation automatique via winget (droits admin requis)
+    if "%IS_ADMIN%"=="1" (
+        where winget >nul 2>&1
+        if not errorlevel 1 (
+            echo [INFO] Installation automatique de Docker Desktop via winget...
+            echo        (peut prendre plusieurs minutes selon la connexion)
+            echo.
+            winget install -e --id Docker.DockerDesktop --accept-source-agreements --accept-package-agreements
+            if not errorlevel 1 (
+                echo.
+                echo [OK] Docker Desktop a ete installe.
+                echo.
+                echo      IMPORTANT : Vous devez maintenant :
+                echo        1. Redemarrer votre ordinateur
+                echo        2. Lancer Docker Desktop depuis le menu Demarrer
+                echo        3. Attendre que le logo baleine apparaisse dans la barre des taches
+                echo        4. Relancer ce fichier
+                echo.
+                popd
+                if "%INTERACTIVE%"=="1" pause
+                exit /b 0
+            ) else (
+                echo.
+                echo [AVERTISSEMENT] L'installation via winget a echoue.
+            )
+        )
+    ) else (
+        echo [AVERTISSEMENT] Droits administrateur non disponibles sur cette machine.
+        echo                 L'installation automatique de Docker est impossible.
+        echo.
+        echo          Solutions :
+        echo            - Demander a votre administrateur systeme d'installer Docker Desktop
+        echo            - Ou executer ce fichier en tant qu'administrateur si vous avez
+        echo              les identifiants (clic droit > Executer en tant qu'administrateur)
+        echo.
+    )
+
+    :: Fallback : ouvrir la page de telechargement manuellement
+    echo.
+    if "%INTERACTIVE%"=="1" (
+        echo [INFO] Ouverture de la page de telechargement Docker Desktop...
+        start "" "https://www.docker.com/products/docker-desktop/"
+    )
+    echo        Pour installer Docker Desktop manuellement (droits admin requis) :
+    echo          1. Telecharger et executer l'installeur depuis la page qui vient de s'ouvrir
+    echo          2. Redemarrer l'ordinateur si demande
+    echo          3. Lancer Docker Desktop depuis le menu Demarrer
+    echo          4. Attendre que le logo baleine apparaisse dans la barre des taches
+    echo          5. Relancer ce fichier
+    echo.
+    popd
+    if "%INTERACTIVE%"=="1" pause
+    exit /b 1
+)
+
+for /f "tokens=3" %%v in ('docker --version 2^>^&1') do set DOCKER_VER=%%v
+echo [OK] Docker %DOCKER_VER% detecte.
+
+:: ----------------------------------------------------------------
+:: ETAPE 2 — Verifier que le daemon Docker est demarre
 :: ----------------------------------------------------------------
 echo.
-echo [INFO] Verification des dependances Python...
-echo        (peut prendre 1-2 minutes lors de la premiere execution)
-pip install -r requirements.txt -q --disable-pip-version-check
+echo [INFO] Verification que Docker Desktop est demarre...
+docker info >nul 2>&1
 if errorlevel 1 (
+    echo [INFO] Docker Desktop est installe mais pas encore demarre.
+    echo        Tentative de lancement automatique...
     echo.
-    echo [ERREUR] Echec de l'installation des dependances.
-    echo          Verifiez votre connexion internet et relancez ce script.
-    pause
-    exit /b 1
+
+    :: Tenter de lancer Docker Desktop (mode interactif seulement)
+    if "%INTERACTIVE%"=="1" start "" "Docker Desktop"
+
+    :: Attendre jusqu'a 90 secondes que le daemon reponde
+    set /a WAIT=0
+    :wait_daemon
+    set /a WAIT+=1
+    if %WAIT% gtr 30 (
+        echo.
+        echo [ERREUR] Docker Desktop n'a pas demarre apres 90 secondes.
+        echo.
+        echo          Solutions :
+        echo            1. Ouvrir Docker Desktop manuellement depuis le menu Demarrer
+        echo            2. Attendre que le logo baleine apparaisse dans la barre des taches
+        echo            3. Relancer ce fichier
+        echo.
+        popd
+        if "%INTERACTIVE%"=="1" pause
+        exit /b 1
+    )
+    set /p =. <nul
+    timeout /t 3 >nul
+    docker info >nul 2>&1
+    if errorlevel 1 goto wait_daemon
+
+    echo.
+    echo [OK] Docker Desktop est maintenant demarre.
+) else (
+    echo [OK] Docker Desktop est demarre.
 )
-echo [OK] Toutes les dependances sont installees.
 
 :: ----------------------------------------------------------------
-:: ETAPE 5 — Creer le fichier .env si absent
+:: ETAPE 3 — Creer le fichier .env si absent
+::           (avec DATABASE_URL pointant vers le service Docker "db")
 :: ----------------------------------------------------------------
 if not exist ".env" (
     echo.
     echo [INFO] Fichier de configuration absent - creation automatique...
-    copy .env.example .env >nul
-    echo [OK] Fichier .env cree.
+    (
+        echo # ============================================================
+        echo # Variables d'environnement — T'ELEFAN MES 4.0
+        echo # Genere automatiquement par LANCER_APP.bat
+        echo # ============================================================
+        echo.
+        echo # Connexion a la base MariaDB dans Docker Compose
+        echo DATABASE_URL=mysql+pymysql://example_user:example_password@db:3306/MES4
+        echo.
+        echo SECRET_KEY=exemple-secret-key-2025
+        echo.
+        echo FLASK_APP=app.run:app
+        echo FLASK_DEBUG=1
+    ) > .env
+    echo [OK] Fichier .env cree (mode Docker, DATABASE_URL pointe vers "db").
 )
 
 :: ----------------------------------------------------------------
-:: ETAPE 6 — Verifier que Docker est installe et demarre
+:: ETAPE 4 — Demarrer tous les conteneurs (db + phpmyadmin + app)
 :: ----------------------------------------------------------------
 echo.
-echo [INFO] Verification de Docker...
-docker info >nul 2>&1
-if errorlevel 1 (
-    echo.
-    echo [ERREUR] Docker n'est pas installe ou n'est pas demarre.
-    echo.
-    echo Pour installer Docker Desktop :
-    echo   1. Aller sur https://www.docker.com/products/docker-desktop/
-    echo   2. Telecharger et installer Docker Desktop
-    echo   3. Demarrer Docker Desktop et attendre que le logo baleine
-    echo      apparaisse dans la barre des taches
-    echo   4. Relancer ce fichier
-    echo.
-    pause
-    exit /b 1
-)
-echo [OK] Docker est demarre.
-
-:: ----------------------------------------------------------------
-:: ETAPE 7 — Demarrer la base de donnees (Docker)
-:: ----------------------------------------------------------------
-echo.
-echo [INFO] Demarrage de la base de donnees...
-echo        (premiere fois : telechargement de l'image MariaDB ~500 Mo)
-docker compose up -d db phpmyadmin
+echo [INFO] Demarrage des conteneurs Docker...
+echo        (premiere fois : telechargement des images ~600 Mo, peut prendre quelques minutes)
+docker compose up -d
 if errorlevel 1 (
     echo.
     echo [ERREUR] Impossible de demarrer les conteneurs Docker.
-    echo          Verifiez que Docker Desktop est bien ouvert.
-    pause
+    echo.
+    echo          Diagnostics utiles :
+    echo            docker compose logs db
+    echo            docker compose logs app
+    echo.
+    echo          Causes frequentes :
+    echo            - Un port est deja utilise (3306, 5000 ou 8080)
+    echo            - Le dossier du projet n'est pas partage dans Docker Desktop
+    echo              (Parametres Docker > Resources > File sharing)
+    echo.
+    popd
+    if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
 
 :: ----------------------------------------------------------------
-:: ETAPE 8 — Attendre que la base de donnees soit prete
+:: ETAPE 5 — Attendre que l'application Flask soit accessible (port 5000)
 :: ----------------------------------------------------------------
 echo.
-echo [INFO] Attente de la base de donnees (peut prendre 30-60 secondes)...
+echo [INFO] Attente du demarrage de l'application (peut prendre 30-60 secondes)...
 set /a RETRY=0
 
-:wait_db
+:wait_app
 set /a RETRY+=1
 if %RETRY% gtr 60 (
     echo.
-    echo [ERREUR] La base de donnees n'a pas repondu apres 2 minutes.
-    echo          Verifiez l'etat des conteneurs : docker compose logs db
-    pause
+    echo [ERREUR] L'application n'a pas repondu apres 2 minutes.
+    echo.
+    echo          Verifiez les logs :
+    echo            docker compose logs app
+    echo            docker compose logs db
+    echo.
+    popd
+    if "%INTERACTIVE%"=="1" pause
     exit /b 1
 )
 
-powershell -Command "try { $t=New-Object Net.Sockets.TcpClient('localhost',3306); $t.Close(); exit 0 } catch { exit 1 }" >nul 2>&1
+powershell -Command "try { $t=New-Object Net.Sockets.TcpClient('localhost',5000); $t.Close(); exit 0 } catch { exit 1 }" >nul 2>&1
 if errorlevel 1 (
     set /p =. <nul
     timeout /t 2 >nul
-    goto wait_db
+    goto wait_app
 )
 
 echo.
-echo [OK] Base de donnees accessible.
+echo [OK] Application accessible.
 
 :: ----------------------------------------------------------------
-:: ETAPE 9 — Ouvrir le navigateur automatiquement apres 3 secondes
+:: ETAPE 6 — Ouvrir le navigateur automatiquement (mode interactif)
 :: ----------------------------------------------------------------
-start "" cmd /c "timeout /t 3 >nul && start http://localhost:5000"
+if "%INTERACTIVE%"=="1" start "" "http://localhost:5000"
 
 :: ----------------------------------------------------------------
-:: ETAPE 10 — Lancer l'application Flask
+:: ETAPE 7 — Afficher le resume
 :: ----------------------------------------------------------------
 echo.
 echo ============================================================
 echo   Application disponible sur : http://localhost:5000
 echo   phpMyAdmin disponible sur  : http://localhost:8080
-echo   Le navigateur va s'ouvrir automatiquement...
 echo.
 echo   Comptes de connexion :
 echo     admin        /  admin123   (administrateur, acces export)
 echo     responsable  /  resp123    (responsable,    acces export)
 echo     operateur    /  oper123    (employe,         lecture seule)
 echo.
-echo   Pour arreter l'application : appuyer sur CTRL+C
-echo   Pour arreter la base de donnees : docker compose stop
+echo   Commandes utiles :
+echo     Arreter les conteneurs  : docker compose stop
+echo     Voir les logs de l'app  : docker compose logs app
+echo     Supprimer les conteneurs: docker compose down
+echo.
+echo   Le navigateur a ete ouvert automatiquement.
+echo   Fermez cette fenetre quand vous avez fini.
 echo ============================================================
 echo.
 
-flask run
-
-echo.
-echo Application arretee.
-echo Pour arreter aussi la base de donnees : docker compose stop
-echo.
-pause
+popd
+if "%INTERACTIVE%"=="1" pause
