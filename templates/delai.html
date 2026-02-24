@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Delai - T'ELEFAN MES 4.0{% endblock %}
+
+{% block breadcrumbs %}
+<div class="border-t border-zinc-100 bg-zinc-50/50">
+    <div class="max-w-[1400px] mx-auto px-4 py-2 text-sm">
+        <a href="{{ url_for('main.dashboard') }}" class="text-zinc-400 hover:text-zinc-600 transition-colors">Accueil</a>
+        <span class="mx-1.5 text-zinc-300">/</span>
+        <span class="font-medium text-zinc-900">Delai</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Delai</h2>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Lead Time (Scatter Plot) -->
+    <div class="bg-white rounded-2xl border border-zinc-200/50
+                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="h-1 kpi-bar-delai"></div>
+        <div class="p-6">
+            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                Lead Time
+            </h3>
+            <div id="lead-time-chart" class="plotly-chart" style="height: 320px;"></div>
+        </div>
+    </div>
+
+    <!-- Temps d'attente en buffer (Line Chart) -->
+    <div class="bg-white rounded-2xl border border-zinc-200/50
+                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="h-1 kpi-bar-delai"></div>
+        <div class="p-6">
+            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                Temps d'attente en buffer
+            </h3>
+            <div id="buffer-wait-chart" class="plotly-chart" style="height: 320px;"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Resume -->
+<div class="mt-6 bg-white rounded-2xl border border-zinc-200/50
+            shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="text-center">
+            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Lead Time moyen</p>
+            <p class="text-2xl font-bold font-mono text-zinc-900">{{ lead_time.value }}h</p>
+        </div>
+        <div class="text-center">
+            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Ordres analyses</p>
+            <p class="text-2xl font-bold font-mono text-zinc-900">{{ lead_time.count }}</p>
+        </div>
+        <div class="text-center">
+            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Temps buffer moyen</p>
+            <p class="text-2xl font-bold font-mono text-zinc-900">{{ buffer_wait.value }}s</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Lead Time Scatter Plot ---
+    var ltData = {{ lead_time.distribution | tojson }};
+    if (ltData && ltData.length > 0) {
+        Plotly.newPlot('lead-time-chart', [{
+            type: 'scatter',
+            mode: 'markers',
+            x: ltData.map(function(d, i) { return i; }),
+            y: ltData.map(function(d) { return d.hours; }),
+            marker: {
+                color: '#d946a8',
+                size: 6,
+                opacity: 0.7
+            },
+            text: ltData.map(function(d) { return 'Ordre ' + d.order + '<br>' + d.hours + 'h'; }),
+            hovertemplate: '%{text}<extra></extra>'
+        }], {
+            xaxis: {
+                title: { text: 'Index ordre', font: { size: 10, color: '#a1a1aa' } },
+                tickfont: { size: 10, color: '#a1a1aa' },
+                gridcolor: '#f4f4f5'
+            },
+            yaxis: {
+                title: { text: 'Duree (heures)', font: { size: 10, color: '#a1a1aa' } },
+                range: [0, 6],
+                tickfont: { size: 10, color: '#a1a1aa' },
+                gridcolor: '#f4f4f5'
+            },
+            shapes: [{
+                type: 'line',
+                x0: 0, x1: 1, xref: 'paper',
+                y0: 3, y1: 3,
+                line: { color: '#d946a8', width: 1.5, dash: 'dash' }
+            }],
+            annotations: [{
+                x: 1, xref: 'paper', xanchor: 'right',
+                y: 3, yanchor: 'bottom',
+                text: 'Threshold',
+                showarrow: false,
+                font: { size: 9, color: '#d946a8' }
+            }],
+            margin: { t: 10, b: 50, l: 50, r: 10 },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            height: 320
+        }, { responsive: true, displayModeBar: false });
+    } else {
+        document.getElementById('lead-time-chart').innerHTML =
+            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
+            'Aucune donnee de lead time disponible</div>';
+    }
+
+    // --- Buffer Wait Time Line Chart ---
+    var bwData = {{ buffer_wait.by_event | tojson }};
+    if (bwData && bwData.length > 0) {
+        var maxY = Math.max.apply(null, bwData.map(function(d) { return d.seconds; }));
+        var yMax = Math.max(350, maxY * 1.1);
+
+        Plotly.newPlot('buffer-wait-chart', [{
+            type: 'scatter',
+            mode: 'lines',
+            x: bwData.map(function(d, i) { return i; }),
+            y: bwData.map(function(d) { return d.seconds; }),
+            line: { color: '#d946a8', width: 1.5 },
+            hovertemplate: '%{y:.1f}s<extra></extra>'
+        }], {
+            xaxis: {
+                title: { text: 'Index temporel', font: { size: 10, color: '#a1a1aa' } },
+                tickfont: { size: 10, color: '#a1a1aa' },
+                gridcolor: '#f4f4f5'
+            },
+            yaxis: {
+                title: { text: 'Duree (secondes)', font: { size: 10, color: '#a1a1aa' } },
+                range: [0, yMax],
+                tickfont: { size: 10, color: '#a1a1aa' },
+                gridcolor: '#f4f4f5'
+            },
+            shapes: [{
+                type: 'rect',
+                x0: 0, x1: 1, xref: 'paper',
+                y0: 300, y1: yMax,
+                fillcolor: 'rgba(242, 192, 255, 0.25)',
+                line: { width: 0 }
+            }],
+            annotations: [{
+                x: 1, xref: 'paper', xanchor: 'right',
+                y: 300, yanchor: 'bottom',
+                text: 'Alert',
+                showarrow: false,
+                font: { size: 10, color: '#d946a8', weight: 600 }
+            }],
+            margin: { t: 10, b: 50, l: 50, r: 10 },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            height: 320
+        }, { responsive: true, displayModeBar: false });
+    } else {
+        document.getElementById('buffer-wait-chart').innerHTML =
+            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
+            'Aucune donnee de temps d\'attente buffer disponible</div>';
+    }
+</script>
+{% endblock %}

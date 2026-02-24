@@ -1,6 +1,25 @@
-flask
-flask-sqlalchemy
-pymysql
-python-dotenv
-pandas
-plotly
+# ============================================================
+# Dependances Python — T'ELEFAN MES 4.0
+# ============================================================
+
+# --- Framework web ---
+flask                   # Framework web principal
+flask-sqlalchemy        # ORM SQLAlchemy integre a Flask
+
+# --- Base de donnees ---
+pymysql                 # Connecteur Python pour MariaDB/MySQL
+
+# --- Configuration ---
+python-dotenv           # Chargement des variables d'environnement (.env)
+
+# --- Traitement de donnees ---
+pandas                  # Manipulation de DataFrames (calcul KPIs)
+plotly                  # Graphiques interactifs (utilise cote client via CDN)
+
+# --- Export ---
+openpyxl                # Generation de fichiers Excel (.xlsx)
+weasyprint              # Conversion HTML -> PDF (optionnel, fallback HTML)
+
+# --- Tests ---
+pytest                  # Framework de tests unitaires
+pytest-flask            # Fixtures Flask pour pytest (client HTTP, app context)

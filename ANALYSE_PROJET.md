@@ -6,9 +6,9 @@
 **T'EleFan** : fabricant de smartphones durables, a investi dans une **ligne de production semi-automatisée FESTO** et a besoin d'un **tableau de bord MES** (Manufacturing Execution System) pour piloter sa production en temps réel.
 
 ### Les équipes
-- **QLIO** (5 pers.) = le **client** : définit les besoins, rédige le CDC, choisit les KPIs
-- **SD** (3 pers. : Loïc Cotte, Léon Vincent-Vacle, Ibrahim Rahmani) = le **prestataire** : développe le tableau de bord
-- **Encadrants** : Jannik Laval, Matthieu Guillot, Benoit Riou
+- **QLIO** 
+- **SD** 
+- **Encadrants** 
 
 ### Planning
 

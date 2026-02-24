@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Stock - T'ELEFAN MES 4.0{% endblock %}
+
+{% block breadcrumbs %}
+<div class="border-t border-zinc-100 bg-zinc-50/50">
+    <div class="max-w-[1400px] mx-auto px-4 py-2 text-sm">
+        <a href="{{ url_for('main.dashboard') }}" class="text-zinc-400 hover:text-zinc-600 transition-colors">Accueil</a>
+        <span class="mx-1.5 text-zinc-300">/</span>
+        <span class="font-medium text-zinc-900">Stock</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Stock</h2>
+
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+    <!-- Taux d'occupation des buffers (Bar Chart) - 60% -->
+    <div class="lg:col-span-3 bg-white rounded-2xl border border-zinc-200/50
+                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="h-1 kpi-bar-stock"></div>
+        <div class="p-6">
+            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                Taux d'occupation des buffers
+            </h3>
+            <div id="buffer-occ-chart" class="plotly-chart" style="height: 340px;"></div>
+        </div>
+    </div>
+
+    <!-- Variation du niveau de stock (Bar Chart) - 40% -->
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/50
+                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="h-1 kpi-bar-stock"></div>
+        <div class="p-6">
+            <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
+                Variation du niveau de stock
+            </h3>
+            <div id="stock-var-chart" class="plotly-chart" style="height: 340px;"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Resume -->
+<div class="mt-6 bg-white rounded-2xl border border-zinc-200/50
+            shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] p-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="text-center">
+            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Taux occupation global</p>
+            <p class="text-2xl font-bold font-mono text-zinc-900">{{ buffer_occ.value }}%</p>
+        </div>
+        <div class="text-center">
+            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Nombre de buffers</p>
+            <p class="text-2xl font-bold font-mono text-zinc-900">{{ buffer_occ.by_buffer | length }}</p>
+        </div>
+        <div class="text-center">
+            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Alerte</p>
+            {% if buffer_occ.status == 'critical' %}
+            <p class="text-2xl font-bold font-mono text-perf">Occupation > 90%</p>
+            {% elif buffer_occ.status == 'warning' %}
+            <p class="text-2xl font-bold font-mono text-amber-500">Occupation > 80%</p>
+            {% else %}
+            <p class="text-2xl font-bold font-mono text-green-600">Normal</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- Buffer Occupancy Bar Chart ---
+    var boData = {{ buffer_occ.by_buffer | tojson }};
+    if (boData && boData.length > 0) {
+        var colors = boData.map(function(d) {
+            return d.rate > 90 ? '#ef4444' : '#737373';
+        });
+        var annotations = [];
+        boData.forEach(function(d, i) {
+            if (d.rate > 90) {
+                annotations.push({
+                    x: d.name,
+                    y: d.rate,
+                    text: '>90%',
+                    showarrow: false,
+                    yshift: 12,
+                    font: { size: 9, color: '#ef4444', weight: 600 }
+                });
+            }
+        });
+
+        Plotly.newPlot('buffer-occ-chart', [{
+            type: 'bar',
+            x: boData.map(function(d) { return d.name; }),
+            y: boData.map(function(d) { return d.rate; }),
+            marker: {
+                color: colors,
+                line: { width: 0 }
+            },
+            text: boData.map(function(d) { return d.rate.toFixed(1) + '%'; }),
+            textposition: 'outside',
+            textfont: { size: 9, color: '#71717a' },
+            hovertemplate: '%{x}<br>Occupation: %{y:.1f}%<br>Capacite: ' +
+                boData.map(function(d) { return d.capacity; }).join(',') + '<extra></extra>'
+        }], {
+            xaxis: {
+                tickfont: { size: 8, color: '#71717a' },
+                tickangle: -35
+            },
+            yaxis: {
+                title: { text: 'Occupation (%)', font: { size: 10, color: '#a1a1aa' } },
+                range: [0, 105],
+                tickfont: { size: 10, color: '#a1a1aa' },
+                gridcolor: '#f4f4f5',
+                ticksuffix: '%'
+            },
+            annotations: annotations,
+            margin: { t: 10, b: 90, l: 50, r: 10 },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            bargap: 0.3,
+            height: 340
+        }, { responsive: true, displayModeBar: false });
+    } else {
+        document.getElementById('buffer-occ-chart').innerHTML =
+            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
+            'Aucune donnee de buffer disponible</div>';
+    }
+
+    // --- Stock Variation Bar Chart ---
+    var svData = {{ stock_var.variations | tojson }};
+    if (svData && svData.length > 0) {
+        Plotly.newPlot('stock-var-chart', [{
+            type: 'bar',
+            x: svData.map(function(d) { return d.buffer; }),
+            y: svData.map(function(d) { return d.variation_pct; }),
+            marker: {
+                color: '#737373',
+                line: { width: 0 }
+            },
+            text: svData.map(function(d) { return d.variation_pct.toFixed(1) + '%'; }),
+            textposition: 'outside',
+            textfont: { size: 9, color: '#71717a' },
+            hovertemplate: '%{x}<br>Variation: %{y:.1f}%<extra></extra>'
+        }], {
+            xaxis: {
+                tickfont: { size: 8, color: '#71717a' },
+                tickangle: -35
+            },
+            yaxis: {
+                title: { text: 'Variation (%)', font: { size: 10, color: '#a1a1aa' } },
+                range: [0, 10],
+                tickfont: { size: 10, color: '#a1a1aa' },
+                gridcolor: '#f4f4f5',
+                ticksuffix: '%'
+            },
+            margin: { t: 10, b: 90, l: 50, r: 10 },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            bargap: 0.3,
+            height: 340
+        }, { responsive: true, displayModeBar: false });
+    } else {
+        document.getElementById('stock-var-chart').innerHTML =
+            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
+            'Aucune donnee de variation de stock disponible</div>';
+    }
+</script>
+{% endblock %}

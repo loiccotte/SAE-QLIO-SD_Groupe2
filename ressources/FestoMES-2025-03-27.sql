@@ -17,13 +17,8 @@
 
 --
 -- Current Database: `MES4`
+-- (DROP/CREATE/USE retires : Docker cree la base via MYSQL_DATABASE)
 --
-
-/*!40000 DROP DATABASE IF EXISTS `MES4`*/;
-
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `mes4` /*!40100 DEFAULT CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci */;
-
-USE `MES4`;
 
 --
 -- Table structure for table `tblagvdocked`

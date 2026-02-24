@@ -1,0 +1,34 @@
+/* T'ELEFAN MES 4.0 - Styles complementaires */
+
+/* Barres de couleur par categorie KPI */
+.kpi-bar-perf { background-color: #ff0000; }
+.kpi-bar-qualite { background-color: #38b6ff; }
+.kpi-bar-delai { background-color: #f2c0ff; }
+.kpi-bar-energie { background-color: #09b200; }
+.kpi-bar-stock { background-color: #737373; }
+
+/* Animation clignotante pour alertes KPI */
+@keyframes alert-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+.alert-blink {
+    animation: alert-blink 1.5s ease-in-out infinite;
+}
+
+/* Plotly responsive fix */
+.plotly-chart .js-plotly-plot,
+.plotly-chart .plot-container {
+    width: 100% !important;
+}
+
+/* Transition douce pour les cards du dashboard */
+.kpi-card {
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+.kpi-card:hover {
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
+}
+.kpi-card:active {
+    transform: scale(0.98);
+}

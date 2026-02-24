@@ -10,9 +10,14 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      # Initialise la BDD avec votre dump SQL automatiquement
       - ./ressources/FestoMES-2025-03-27.sql:/docker-entrypoint-initdb.d/init.sql
       - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   phpmyadmin:
     image: phpmyadmin:latest
@@ -29,7 +34,8 @@ services:
       - "5000:5000"
     env_file: .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - .:/app
 

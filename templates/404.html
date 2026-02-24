@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - T'ELEFAN MES 4.0</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Geist', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif; }
+    </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 min-h-[100dvh] grid place-items-center">
+
+    <div class="text-center px-4">
+        <!-- Illustration pingouin avec casque SVG -->
+        <svg class="mx-auto mb-8" width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Corps pingouin -->
+            <ellipse cx="100" cy="130" rx="45" ry="55" fill="#3f3f46"/>
+            <!-- Ventre blanc -->
+            <ellipse cx="100" cy="138" rx="30" ry="40" fill="#fafafa"/>
+            <!-- Tete -->
+            <circle cx="100" cy="80" r="30" fill="#3f3f46"/>
+            <!-- Yeux -->
+            <circle cx="90" cy="75" r="5" fill="white"/>
+            <circle cx="110" cy="75" r="5" fill="white"/>
+            <circle cx="91" cy="76" r="2.5" fill="#18181b"/>
+            <circle cx="111" cy="76" r="2.5" fill="#18181b"/>
+            <!-- Bec -->
+            <polygon points="97,85 103,85 100,92" fill="#f59e0b"/>
+            <!-- Ailes -->
+            <ellipse cx="58" cy="125" rx="12" ry="30" fill="#52525b" transform="rotate(-10 58 125)"/>
+            <ellipse cx="142" cy="125" rx="12" ry="30" fill="#52525b" transform="rotate(10 142 125)"/>
+            <!-- Pieds -->
+            <ellipse cx="85" cy="183" rx="12" ry="5" fill="#f59e0b"/>
+            <ellipse cx="115" cy="183" rx="12" ry="5" fill="#f59e0b"/>
+            <!-- Casque de chantier -->
+            <rect x="70" y="52" width="60" height="8" rx="2" fill="#f59e0b"/>
+            <path d="M72 60 Q100 35 128 60" fill="#f59e0b"/>
+            <rect x="65" y="58" width="70" height="4" rx="2" fill="#d97706"/>
+            <!-- Engrenage a droite -->
+            <g transform="translate(150, 100)">
+                <circle cx="0" cy="0" r="12" fill="none" stroke="#a1a1aa" stroke-width="3"/>
+                <circle cx="0" cy="0" r="4" fill="#a1a1aa"/>
+                <rect x="-2" y="-16" width="4" height="8" rx="1" fill="#a1a1aa"/>
+                <rect x="-2" y="8" width="4" height="8" rx="1" fill="#a1a1aa"/>
+                <rect x="-16" y="-2" width="8" height="4" rx="1" fill="#a1a1aa"/>
+                <rect x="8" y="-2" width="8" height="4" rx="1" fill="#a1a1aa"/>
+            </g>
+            <!-- Point d'interrogation -->
+            <g transform="translate(155, 70)">
+                <circle cx="0" cy="0" r="10" fill="white" stroke="#a1a1aa" stroke-width="2"/>
+                <text x="0" y="4" text-anchor="middle" font-size="13" font-weight="bold" fill="#71717a">?</text>
+            </g>
+        </svg>
+
+        <h1 class="text-4xl font-bold tracking-tight text-zinc-900 mb-2">
+            ERREUR 404
+        </h1>
+        <p class="text-lg text-zinc-500 uppercase tracking-wider mb-8">
+            Page introuvable
+        </p>
+
+        <a href="/dashboard"
+           class="inline-block px-8 py-3 bg-[#2563eb] text-white text-sm font-semibold
+                  uppercase tracking-wide rounded-lg
+                  hover:bg-[#1d4ed8] transition-colors active:scale-[0.98]">
+            Retour a l'accueil
+        </a>
+    </div>
+
+</body>
+</html>

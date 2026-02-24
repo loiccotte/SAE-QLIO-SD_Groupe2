@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - T'ELEFAN MES 4.0</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Geist', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif; }
+    </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 min-h-[100dvh] grid place-items-center">
+
+    <div class="w-full max-w-sm px-4">
+        <div class="bg-white rounded-2xl p-8
+                    shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)]
+                    border border-zinc-200/50">
+
+            <!-- Titre -->
+            <h1 class="text-2xl font-bold tracking-tight text-center mb-0.5">
+                T'ELEFAN
+            </h1>
+            <p class="text-xs text-zinc-400 text-center uppercase tracking-widest mb-8">
+                Connexion MES 4.0
+            </p>
+
+            <!-- Messages flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="mb-4 p-3 rounded-lg text-sm
+                            {% if category == 'error' %}
+                                bg-red-50 text-red-700 border border-red-200
+                            {% else %}
+                                bg-zinc-50 text-zinc-700 border border-zinc-200
+                            {% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Formulaire -->
+            <form method="POST" action="{{ url_for('auth.login') }}" class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label for="identifiant" class="text-sm font-medium text-zinc-700">
+                        Identifiant
+                    </label>
+                    <input type="text" id="identifiant" name="identifiant" required
+                           autocomplete="username"
+                           class="px-3 py-2.5 rounded-lg border border-zinc-300
+                                  bg-zinc-50 text-sm
+                                  focus:outline-none focus:ring-2 focus:ring-zinc-900/10
+                                  focus:border-zinc-400 focus:bg-white
+                                  transition-colors"
+                           placeholder="Entrez votre identifiant">
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <label for="mot_de_passe" class="text-sm font-medium text-zinc-700">
+                        Mot de passe
+                    </label>
+                    <input type="password" id="mot_de_passe" name="mot_de_passe" required
+                           autocomplete="current-password"
+                           class="px-3 py-2.5 rounded-lg border border-zinc-300
+                                  bg-zinc-50 text-sm
+                                  focus:outline-none focus:ring-2 focus:ring-zinc-900/10
+                                  focus:border-zinc-400 focus:bg-white
+                                  transition-colors"
+                           placeholder="Entrez votre mot de passe">
+                </div>
+
+                <button type="submit"
+                        class="mt-2 py-2.5 bg-zinc-900 text-white text-sm font-semibold
+                               uppercase tracking-wide rounded-lg
+                               hover:bg-zinc-800 transition-colors active:scale-[0.98]">
+                    Se connecter
+                </button>
+            </form>
+
+            <p class="text-[10px] text-zinc-300 text-center mt-8">
+                T'ELEFAN 2026
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}T'ELEFAN MES 4.0{% endblock %}</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        perf: '#ff0000',
+                        qualite: '#38b6ff',
+                        delai: '#f2c0ff',
+                        energie: '#09b200',
+                        stock: '#737373',
+                    },
+                    fontFamily: {
+                        sans: ['Geist', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['Geist Mono', 'ui-monospace', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Police Geist -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- CSS custom -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+    {% block head %}{% endblock %}
+
+    <style>
+        body { font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif; }
+    </style>
+</head>
+<body class="bg-zinc-50 text-zinc-900 min-h-[100dvh]">
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-40 bg-white border-b border-zinc-200">
+        <div class="max-w-[1400px] mx-auto px-4 py-3 grid grid-cols-3 items-center">
+            <!-- Gauche : Actualiser -->
+            <div class="flex items-center gap-3">
+                <button onclick="location.reload()"
+                        class="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide
+                               bg-zinc-100 hover:bg-zinc-200 rounded-lg
+                               transition-colors active:scale-[0.98]
+                               border border-zinc-200">
+                    Actualiser
+                </button>
+                <span id="refresh-timer" class="text-xs text-zinc-400 font-mono tabular-nums">5:00</span>
+            </div>
+
+            <!-- Centre : Logo -->
+            <div class="text-center">
+                <a href="{{ url_for('main.dashboard') }}" class="inline-block">
+                    <h1 class="text-xl font-bold tracking-tight text-zinc-900">
+                        T'ELEFAN
+                    </h1>
+                    <p class="text-[10px] text-zinc-400 uppercase tracking-widest -mt-0.5">MES 4.0</p>
+                </a>
+            </div>
+
+            <!-- Droite : Export + Logout -->
+            <div class="flex items-center justify-end gap-3">
+                {% if session.get('role') in ['admin', 'responsable'] %}
+                <div class="relative" id="export-wrapper">
+                    <button onclick="document.getElementById('export-modal').classList.toggle('hidden')"
+                            class="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide
+                                   bg-zinc-100 hover:bg-zinc-200 rounded-lg
+                                   transition-colors active:scale-[0.98]
+                                   border border-zinc-200">
+                        Exporter
+                    </button>
+                    <!-- Export dropdown -->
+                    <div id="export-modal" class="hidden absolute right-0 top-full mt-2 w-64
+                                bg-white rounded-xl border border-zinc-200 shadow-lg z-50 p-4">
+                        <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Format</p>
+                        <div class="flex gap-2 mb-4">
+                            <button onclick="doExport('pdf')"
+                                    class="flex-1 py-2 text-xs font-semibold uppercase rounded-lg
+                                           bg-zinc-900 text-white hover:bg-zinc-800 transition-colors
+                                           active:scale-[0.98]">
+                                PDF
+                            </button>
+                            <button onclick="doExport('excel')"
+                                    class="flex-1 py-2 text-xs font-semibold uppercase rounded-lg
+                                           bg-zinc-900 text-white hover:bg-zinc-800 transition-colors
+                                           active:scale-[0.98]">
+                                Excel
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-zinc-400 text-center">
+                            Exporte tous les KPIs actuels
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+                {% block header_actions %}{% endblock %}
+                <a href="{{ url_for('auth.logout') }}"
+                   class="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide
+                          text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100
+                          rounded-lg transition-colors border border-transparent
+                          hover:border-zinc-200">
+                    Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        {% block breadcrumbs %}{% endblock %}
+    </header>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main class="max-w-[1400px] mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- AUTO-REFRESH : compteur 5 minutes -->
+    <script>
+        (function() {
+            var seconds = 300;
+            var timerEl = document.getElementById('refresh-timer');
+            setInterval(function() {
+                seconds--;
+                if (seconds <= 0) {
+                    location.reload();
+                    return;
+                }
+                var m = Math.floor(seconds / 60);
+                var s = seconds % 60;
+                timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+            }, 1000);
+        })();
+    </script>
+
+    <!-- Export function -->
+    <script>
+        function doExport(format) {
+            var url = '/export/' + format;
+            window.location.href = url;
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+        // Fermer le dropdown export au clic exterieur
+        document.addEventListener('click', function(e) {
+            var modal = document.getElementById('export-modal');
+            var wrapper = document.getElementById('export-wrapper');
+            if (modal && wrapper && !wrapper.contains(e.target)) {
+                modal.classList.add('hidden');
+            }
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
