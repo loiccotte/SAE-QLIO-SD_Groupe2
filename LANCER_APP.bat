@@ -268,7 +268,7 @@ if "%INTERACTIVE%"=="1" start "" "http://localhost:5000"
 echo.
 echo ============================================================
 echo   Application disponible sur : http://localhost:5000
-echo   phpMyAdmin disponible sur  : http://localhost:8080
+echo   Adminer (BDD)  disponible sur  : http://localhost:8080
 echo.
 echo   Comptes de connexion :
 echo     admin        /  admin123   (administrateur, acces export)
