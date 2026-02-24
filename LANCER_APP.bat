@@ -57,6 +57,9 @@ if /i not "%DRIVE_LETTER%"=="E:" (
 
 :skip_path_checks
 
+:: En mode CI, Docker est preinstalle sur le runner — passer directement a compose
+if "%INTERACTIVE%"=="0" goto run_compose
+
 :: ----------------------------------------------------------------
 :: ETAPE 1 — Verifier que Docker est installe
 :: ----------------------------------------------------------------
@@ -172,6 +175,7 @@ if errorlevel 1 (
     echo [OK] Docker Desktop est demarre.
 )
 
+:run_compose
 :: ----------------------------------------------------------------
 :: ETAPE 3 — Creer le fichier .env si absent
 ::           (avec DATABASE_URL pointant vers le service Docker "db")
