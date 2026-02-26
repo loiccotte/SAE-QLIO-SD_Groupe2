@@ -1,12 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Performance - T'ELEFAN MES 4.0{% endblock %}
+{% block title %}Performance - T'ÉLÉFAN MES 4.0{% endblock %}
+
+{% block header_center %}
+<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">
+    Performance
+</h1>
+{% endblock %}
 
 {% block breadcrumbs %}
 <div class="border-t border-zinc-100 bg-zinc-50/50">
     <div class="max-w-[1400px] mx-auto px-4 py-2 text-sm">
         <a href="{{ url_for('main.dashboard') }}" class="text-zinc-400 hover:text-zinc-600 transition-colors">Accueil</a>
-        <span class="mx-1.5 text-zinc-300">/</span>
+        <span class="mx-1.5 text-zinc-400">&gt;</span>
         <span class="font-medium text-zinc-900">Performance</span>
     </div>
 </div>
@@ -50,7 +56,7 @@
         <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6">
             <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Taux d'utilisation machine
+                Taux d'utilisation par mois
             </h3>
             <div id="utilization-chart" class="plotly-chart" style="height: 320px;"></div>
         </div>
@@ -120,7 +126,7 @@
                 tickcolor: '#d4d4d8',
                 dtick: 20
             },
-            bar: { color: '#dc2626', thickness: 0.75 },
+            bar: { color: '#ff0000', thickness: 0.75 },
             bgcolor: '#f4f4f5',
             borderwidth: 0,
             steps: [
@@ -140,18 +146,16 @@
         height: 260
     }, { responsive: true, displayModeBar: false });
 
-    // --- Utilization Bar Chart ---
-    var utilData = {{ utilization.by_machine | tojson }};
+    // --- Utilization Bar Chart (par mois) ---
+    var utilData = {{ utilization.by_month | tojson }};
     if (utilData && utilData.length > 0) {
         Plotly.newPlot('utilization-chart', [{
             type: 'bar',
-            x: utilData.map(function(d) { return d.name; }),
+            x: utilData.map(function(d) { return d.month; }),
             y: utilData.map(function(d) { return d.value; }),
             marker: {
                 color: utilData.map(function(d) {
-                    if (d.value > 90) return '#dc2626';
-                    if (d.value > 70) return '#f87171';
-                    return '#fca5a5';
+                    return d.alert ? '#ff0000' : '#ffaaaa';
                 }),
                 line: { width: 0 }
             },
@@ -179,21 +183,22 @@
     } else {
         document.getElementById('utilization-chart').innerHTML =
             '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
-            'Aucune donnee d\'utilisation machine disponible</div>';
+            'Aucune donnee d\'utilisation disponible</div>';
     }
 
     // --- Throughput Line Chart ---
     var tpData = {{ throughput.monthly | tojson }};
+    var tpNominal = {{ throughput.nominal | tojson }};
     if (tpData && tpData.length > 0) {
         Plotly.newPlot('throughput-chart', [{
             type: 'scatter',
             mode: 'lines+markers',
             x: tpData.map(function(d) { return d.month; }),
             y: tpData.map(function(d) { return d.value; }),
-            line: { color: '#dc2626', width: 2, shape: 'spline' },
-            marker: { size: 6, color: '#dc2626' },
+            line: { color: '#ff0000', width: 2, shape: 'spline' },
+            marker: { size: 6, color: '#ff0000' },
             fill: 'tozeroy',
-            fillcolor: 'rgba(220, 38, 38, 0.07)',
+            fillcolor: 'rgba(255, 0, 0, 0.07)',
             hovertemplate: '%{x}<br>%{y} pieces<extra></extra>'
         }], {
             xaxis: {
@@ -205,6 +210,19 @@
                 tickfont: { size: 10, color: '#71717a' },
                 gridcolor: '#f4f4f5'
             },
+            shapes: [{
+                type: 'line',
+                x0: 0, x1: 1, xref: 'paper',
+                y0: tpNominal, y1: tpNominal,
+                line: { color: '#18181b', width: 2, dash: 'dot' }
+            }],
+            annotations: [{
+                x: 1, xref: 'paper', xanchor: 'right',
+                y: tpNominal, yanchor: 'bottom',
+                text: 'Nominale',
+                showarrow: false,
+                font: { size: 9, color: '#18181b' }
+            }],
             margin: { t: 10, b: 60, l: 50, r: 10 },
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',

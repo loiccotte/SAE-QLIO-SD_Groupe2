@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Delai - T'ELEFAN MES 4.0{% endblock %}
+{% block title %}Délai - T'ÉLÉFAN MES 4.0{% endblock %}
+
+{% block header_center %}
+<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">
+    Délai
+</h1>
+{% endblock %}
 
 {% block breadcrumbs %}
 <div class="border-t border-zinc-100 bg-zinc-50/50">
     <div class="max-w-[1400px] mx-auto px-4 py-2 text-sm">
         <a href="{{ url_for('main.dashboard') }}" class="text-zinc-400 hover:text-zinc-600 transition-colors">Accueil</a>
-        <span class="mx-1.5 text-zinc-300">/</span>
-        <span class="font-medium text-zinc-900">Delai</span>
+        <span class="mx-1.5 text-zinc-400">&gt;</span>
+        <span class="font-medium text-zinc-900">Délai</span>
     </div>
 </div>
 {% endblock %}
@@ -74,7 +80,7 @@
             x: ltData.map(function(d, i) { return i; }),
             y: ltData.map(function(d) { return d.hours; }),
             marker: {
-                color: '#db2777',
+                color: '#f2c0ff',
                 size: 6,
                 opacity: 0.7
             },
@@ -96,14 +102,14 @@
                 type: 'line',
                 x0: 0, x1: 1, xref: 'paper',
                 y0: 3, y1: 3,
-                line: { color: '#db2777', width: 1.5, dash: 'dash' }
+                line: { color: '#f2c0ff', width: 1.5, dash: 'dash' }
             }],
             annotations: [{
                 x: 1, xref: 'paper', xanchor: 'right',
                 y: 3, yanchor: 'bottom',
                 text: 'Threshold',
                 showarrow: false,
-                font: { size: 9, color: '#db2777' }
+                font: { size: 9, color: '#f2c0ff' }
             }],
             margin: { t: 10, b: 50, l: 50, r: 10 },
             paper_bgcolor: 'transparent',
@@ -127,7 +133,7 @@
             mode: 'lines',
             x: bwData.map(function(d, i) { return i; }),
             y: bwData.map(function(d) { return d.seconds; }),
-            line: { color: '#db2777', width: 1.5 },
+            line: { color: '#f2c0ff', width: 1.5 },
             hovertemplate: '%{y:.1f}s<extra></extra>'
         }], {
             xaxis: {
@@ -145,7 +151,7 @@
                 type: 'rect',
                 x0: 0, x1: 1, xref: 'paper',
                 y0: 300, y1: yMax,
-                fillcolor: 'rgba(219, 39, 119, 0.10)',
+                fillcolor: 'rgba(242, 192, 255, 0.20)',
                 line: { width: 0 }
             }],
             annotations: [{
@@ -153,7 +159,7 @@
                 y: 300, yanchor: 'bottom',
                 text: 'Alert',
                 showarrow: false,
-                font: { size: 10, color: '#db2777', weight: 600 }
+                font: { size: 10, color: '#f2c0ff', weight: 600 }
             }],
             margin: { t: 10, b: 50, l: 50, r: 10 },
             paper_bgcolor: 'transparent',

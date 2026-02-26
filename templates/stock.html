@@ -1,12 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Stock - T'ELEFAN MES 4.0{% endblock %}
+{% block title %}Stock - T'ÉLÉFAN MES 4.0{% endblock %}
+
+{% block header_center %}
+<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">
+    Stock
+</h1>
+{% endblock %}
 
 {% block breadcrumbs %}
 <div class="border-t border-zinc-100 bg-zinc-50/50">
     <div class="max-w-[1400px] mx-auto px-4 py-2 text-sm">
         <a href="{{ url_for('main.dashboard') }}" class="text-zinc-400 hover:text-zinc-600 transition-colors">Accueil</a>
-        <span class="mx-1.5 text-zinc-300">/</span>
+        <span class="mx-1.5 text-zinc-400">&gt;</span>
         <span class="font-medium text-zinc-900">Stock</span>
     </div>
 </div>
@@ -43,30 +49,6 @@
 
 </div>
 
-<!-- Resume -->
-<div class="mt-6 bg-white rounded-2xl border border-zinc-200/50
-            shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] p-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="text-center">
-            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Taux occupation global</p>
-            <p class="text-2xl font-bold font-mono text-zinc-900">{{ buffer_occ.value }}%</p>
-        </div>
-        <div class="text-center">
-            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Nombre de buffers</p>
-            <p class="text-2xl font-bold font-mono text-zinc-900">{{ buffer_occ.by_buffer | length }}</p>
-        </div>
-        <div class="text-center">
-            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Alerte</p>
-            {% if buffer_occ.status == 'critical' %}
-            <p class="text-2xl font-bold font-mono text-perf">Occupation > 90%</p>
-            {% elif buffer_occ.status == 'warning' %}
-            <p class="text-2xl font-bold font-mono text-amber-500">Occupation > 80%</p>
-            {% else %}
-            <p class="text-2xl font-bold font-mono text-green-600">Normal</p>
-            {% endif %}
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -75,7 +57,7 @@
     var boData = {{ buffer_occ.by_buffer | tojson }};
     if (boData && boData.length > 0) {
         var colors = boData.map(function(d) {
-            return d.rate > 90 ? '#ef4444' : '#52525b';
+            return d.rate > 90 ? '#ef4444' : '#737373';
         });
         var annotations = [];
         boData.forEach(function(d, i) {
@@ -137,7 +119,7 @@
             x: svData.map(function(d) { return d.buffer; }),
             y: svData.map(function(d) { return d.variation_pct; }),
             marker: {
-                color: '#52525b',
+                color: '#737373',
                 line: { width: 0 }
             },
             text: svData.map(function(d) { return d.variation_pct.toFixed(1) + '%'; }),
@@ -151,11 +133,24 @@
             },
             yaxis: {
                 title: { text: 'Variation (%)', font: { size: 10, color: '#71717a' } },
-                range: [0, 10],
+                range: [0, Math.max(25, Math.max.apply(null, svData.map(function(d) { return d.variation_pct; })) * 1.2)],
                 tickfont: { size: 10, color: '#71717a' },
                 gridcolor: '#f4f4f5',
                 ticksuffix: '%'
             },
+            shapes: [{
+                type: 'line',
+                x0: 0, x1: 1, xref: 'paper',
+                y0: 20, y1: 20,
+                line: { color: '#ef4444', width: 1.5, dash: 'dash' }
+            }],
+            annotations: [{
+                x: 1, xref: 'paper', xanchor: 'right',
+                y: 20, yanchor: 'bottom',
+                text: 'Alerte 20%',
+                showarrow: false,
+                font: { size: 9, color: '#ef4444' }
+            }],
             margin: { t: 10, b: 90, l: 50, r: 10 },
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',

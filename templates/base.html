@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}T'ELEFAN MES 4.0{% endblock %}</title>
+    <title>{% block title %}T'ÉLÉFAN MES 4.0{% endblock %}</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,11 +12,11 @@
             theme: {
                 extend: {
                     colors: {
-                        perf: '#dc2626',
-                        qualite: '#0284c7',
-                        delai: '#db2777',
-                        energie: '#16a34a',
-                        stock: '#52525b',
+                        perf: '#ff0000',
+                        qualite: '#38b6ff',
+                        delai: '#f2c0ff',
+                        energie: '#09b200',
+                        stock: '#737373',
                     },
                     fontFamily: {
                         sans: ['Outfit', 'system-ui', '-apple-system', 'sans-serif'],
@@ -61,14 +61,16 @@
                 <span id="refresh-timer" class="text-xs text-zinc-400 font-mono tabular-nums">5:00</span>
             </div>
 
-            <!-- Centre : Logo -->
+            <!-- Centre : Logo ou titre page -->
             <div class="text-center">
+                {% block header_center %}
                 <a href="{{ url_for('main.dashboard') }}" class="inline-block">
                     <h1 class="text-xl font-bold tracking-tight text-zinc-900">
-                        T'ELEFAN
+                        T'ÉLÉFAN
                     </h1>
                     <p class="text-[10px] text-zinc-400 uppercase tracking-widest -mt-0.5">MES 4.0</p>
                 </a>
+                {% endblock %}
             </div>
 
             <!-- Droite : Export + Logout -->
@@ -83,8 +85,35 @@
                         Exporter
                     </button>
                     <!-- Export dropdown -->
-                    <div id="export-modal" class="hidden absolute right-0 top-full mt-2 w-64
+                    <div id="export-modal" class="hidden absolute right-0 top-full mt-2 w-72
                                 bg-white rounded-xl border border-zinc-200 shadow-lg z-50 p-4">
+                        <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Période</p>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <select id="export-year" class="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 bg-zinc-50">
+                                <option value="">Année</option>
+                            </select>
+                            <select id="export-month" class="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 bg-zinc-50">
+                                <option value="">Mois</option>
+                                <option value="1">Janvier</option>
+                                <option value="2">Février</option>
+                                <option value="3">Mars</option>
+                                <option value="4">Avril</option>
+                                <option value="5">Mai</option>
+                                <option value="6">Juin</option>
+                                <option value="7">Juillet</option>
+                                <option value="8">Août</option>
+                                <option value="9">Septembre</option>
+                                <option value="10">Octobre</option>
+                                <option value="11">Novembre</option>
+                                <option value="12">Décembre</option>
+                            </select>
+                            <select id="export-day" class="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 bg-zinc-50">
+                                <option value="">Jour</option>
+                            </select>
+                            <select id="export-hour" class="text-xs border border-zinc-200 rounded-lg px-2 py-1.5 bg-zinc-50">
+                                <option value="">Heure</option>
+                            </select>
+                        </div>
                         <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Format</p>
                         <div class="flex gap-2 mb-4">
                             <button onclick="doExport('pdf')"
@@ -100,20 +129,10 @@
                                 Excel
                             </button>
                         </div>
-                        <p class="text-[10px] text-zinc-400 text-center">
-                            Exporte tous les KPIs actuels
-                        </p>
                     </div>
                 </div>
                 {% endif %}
                 {% block header_actions %}{% endblock %}
-                <a href="{{ url_for('auth.logout') }}"
-                   class="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide
-                          text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100
-                          rounded-lg transition-colors border border-transparent
-                          hover:border-zinc-200">
-                    Logout
-                </a>
             </div>
         </div>
 
@@ -188,8 +207,16 @@
     <!-- Export function -->
     <script>
         function doExport(format) {
-            var url = '/export/' + format;
-            window.location.href = url;
+            var params = new URLSearchParams();
+            var year = document.getElementById('export-year').value;
+            var month = document.getElementById('export-month').value;
+            var day = document.getElementById('export-day').value;
+            var hour = document.getElementById('export-hour').value;
+            if (year) params.set('year', year);
+            if (month) params.set('month', month);
+            if (day) params.set('day', day);
+            if (hour) params.set('hour', hour);
+            window.location.href = '/export/' + format + (params.toString() ? '?' + params.toString() : '');
             document.getElementById('export-modal').classList.add('hidden');
         }
         // Fermer le dropdown export au clic exterieur
@@ -200,8 +227,47 @@
                 modal.classList.add('hidden');
             }
         });
+        // Peupler les selects annee/jour/heure
+        (function() {
+            var yearSel = document.getElementById('export-year');
+            var daySel = document.getElementById('export-day');
+            var hourSel = document.getElementById('export-hour');
+            if (yearSel) {
+                var curYear = new Date().getFullYear();
+                for (var y = curYear; y >= curYear - 5; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y; opt.textContent = y;
+                    yearSel.appendChild(opt);
+                }
+            }
+            if (daySel) {
+                for (var d = 1; d <= 31; d++) {
+                    var opt2 = document.createElement('option');
+                    opt2.value = d; opt2.textContent = d;
+                    daySel.appendChild(opt2);
+                }
+            }
+            if (hourSel) {
+                for (var h = 0; h <= 23; h++) {
+                    var opt3 = document.createElement('option');
+                    opt3.value = h; opt3.textContent = h + ':00';
+                    hourSel.appendChild(opt3);
+                }
+            }
+        })();
     </script>
 
     {% block scripts %}{% endblock %}
+
+    <!-- LOGOUT fixé en bas à droite -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <a href="{{ url_for('auth.logout') }}"
+           class="px-5 py-2 text-xs font-semibold uppercase tracking-wide
+                  bg-white border border-zinc-300 rounded-lg shadow-md
+                  text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900
+                  transition-colors active:scale-[0.98]">
+            LOGOUT
+        </a>
+    </div>
 </body>
 </html>

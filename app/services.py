@@ -199,7 +199,7 @@ def _get_resource_names() -> dict[int, str]:
 # KPI 1 : OEE (Taux de Rendement Global)
 # ============================================================================
 
-@_safe_kpi({'value': 0, 'availability': 0, 'performance': 0, 'quality': 0})
+@_safe_kpi({'value': 0, 'availability': 0, 'performance': 0, 'quality': 0, 'trend': 'stable'})
 def calculate_oee() -> dict:
     """Calcule le TRG (OEE) = Disponibilite x Performance x Qualite.
 
@@ -271,12 +271,29 @@ def calculate_oee() -> dict:
         'warning' if oee < OEE_WARNING_THRESHOLD else 'normal'
     )
 
+    # Tendance : compare premiere moitie vs deuxieme moitie des donnees machine
+    trend = 'stable'
+    if not df.empty and len(df) >= 4:
+        half = len(df) // 2
+        df_sorted = df.sort_values('TimeStamp')
+        first_half = df_sorted.iloc[:half]
+        second_half = df_sorted.iloc[half:]
+        oee_first = (first_half[first_half['Busy'] == 1]['Duration'].sum() /
+                     first_half['Duration'].sum() * 100) if first_half['Duration'].sum() > 0 else 0
+        oee_second = (second_half[second_half['Busy'] == 1]['Duration'].sum() /
+                      second_half['Duration'].sum() * 100) if second_half['Duration'].sum() > 0 else 0
+        if oee_second > oee_first * 1.02:
+            trend = 'up'
+        elif oee_second < oee_first * 0.98:
+            trend = 'down'
+
     return {
         'value': round(oee, 1),
         'availability': round(availability, 1),
         'performance': round(performance, 1),
         'quality': round(quality, 1),
         'status': status,
+        'trend': trend,
     }
 
 
@@ -284,23 +301,27 @@ def calculate_oee() -> dict:
 # KPI 2 : Taux d'utilisation machine
 # ============================================================================
 
-@_safe_kpi({'overall': 0, 'by_machine': []})
+@_safe_kpi({'overall': 0, 'by_machine': [], 'by_month': []})
 def calculate_utilization() -> dict:
-    """Calcule le taux d'utilisation par machine.
+    """Calcule le taux d'utilisation par machine et par mois.
 
     Formule : duree Busy / duree totale par ResourceID.
+    Ventilation mensuelle : taux d'utilisation moyen de toutes les machines par mois.
+    Un mois est marque ``alert=True`` si son taux derive de > 10 % par rapport
+    a la moyenne globale.
 
     Source : ``tblmachinereport`` (durees calculees par ``_get_machine_durations``).
 
     Returns:
-        dict avec cles : overall, by_machine (liste de dicts), status.
+        dict avec cles : overall, by_machine, by_month, status.
     """
     df = _get_machine_durations()
     if df.empty:
-        return {'overall': 0, 'by_machine': [], 'status': 'normal'}
+        return {'overall': 0, 'by_machine': [], 'by_month': [], 'status': 'normal'}
 
     names = _get_resource_names()
 
+    # --- Par machine ---
     by_machine = []
     for res_id, group in df.groupby('ResourceID'):
         total = group['Duration'].sum()
@@ -315,9 +336,36 @@ def calculate_utilization() -> dict:
     by_machine.sort(key=lambda m: m['id'])
     overall = sum(m['value'] for m in by_machine) / len(by_machine) if by_machine else 0
 
+    # --- Par mois ---
+    MONTH_LABELS = {
+        1: 'Jan', 2: 'Fév', 3: 'Mar', 4: 'Avr',
+        5: 'Mai', 6: 'Jui', 7: 'Jul', 8: 'Aoû',
+        9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Déc',
+    }
+    df['month_num'] = df['TimeStamp'].dt.month
+    monthly_rates = []
+    for month_num, grp in df.groupby('month_num'):
+        total_m = grp['Duration'].sum()
+        busy_m = grp[grp['Busy'] == 1]['Duration'].sum()
+        rate_m = (busy_m / total_m * 100) if total_m > 0 else 0
+        monthly_rates.append((int(month_num), round(rate_m, 1)))
+
+    monthly_rates.sort(key=lambda x: x[0])
+    overall_avg = sum(r for _, r in monthly_rates) / len(monthly_rates) if monthly_rates else overall
+
+    by_month = [
+        {
+            'month': MONTH_LABELS.get(mn, str(mn)),
+            'value': rate,
+            'alert': abs(rate - overall_avg) > (overall_avg * 0.10),
+        }
+        for mn, rate in monthly_rates
+    ]
+
     return {
         'overall': round(overall, 1),
         'by_machine': by_machine,
+        'by_month': by_month,
         'status': 'warning' if overall < UTILIZATION_WARNING_THRESHOLD else 'normal',
     }
 
@@ -326,7 +374,7 @@ def calculate_utilization() -> dict:
 # KPI 3 : Cadence reelle (pieces / heure)
 # ============================================================================
 
-@_safe_kpi({'value': 0, 'monthly': []})
+@_safe_kpi({'value': 0, 'monthly': [], 'nominal': 60})
 def calculate_throughput() -> dict:
     """Calcule la cadence reelle en pieces par heure.
 
@@ -345,7 +393,7 @@ def calculate_throughput() -> dict:
     ).order_by(OrderPosition.End).all()
 
     if len(positions) < 2:
-        return {'value': 0, 'monthly': [], 'status': 'normal'}
+        return {'value': 0, 'monthly': [], 'nominal': 60, 'status': 'normal'}
 
     total_pieces = len(positions)
     first_end = positions[0].End
@@ -366,6 +414,7 @@ def calculate_throughput() -> dict:
     return {
         'value': round(overall, 1),
         'monthly': monthly,
+        'nominal': 60,  # Cadence nominale de reference (pieces/heure)
         'status': 'normal',
     }
 
@@ -415,7 +464,7 @@ def calculate_cycle_time() -> dict:
 # KPI 5 : Taux de non-conformite (%)
 # ============================================================================
 
-@_safe_kpi({'value': 0, 'rate_orders': 0, 'rate_parts': 0, 'total_pieces': 0, 'total_errors': 0, 'by_machine': []})
+@_safe_kpi({'value': 0, 'rate_orders': 0, 'rate_parts': 0, 'total_pieces': 0, 'total_errors': 0, 'by_machine': [], 'trend': 'stable'})
 def calculate_non_conformity() -> dict:
     """Calcule le taux de non-conformite combine.
 
@@ -470,6 +519,22 @@ def calculate_non_conformity() -> dict:
         if r.ResourceID in REAL_MACHINE_IDS
     ]
 
+    # Tendance : compare taux d'erreur premiere moitie vs deuxieme moitie des ordres
+    trend = 'stable'
+    sorted_positions = OrderPosition.query.filter(
+        OrderPosition.End.isnot(None)
+    ).order_by(OrderPosition.End).all()
+    if len(sorted_positions) >= 4:
+        half = len(sorted_positions) // 2
+        first_errors = sum(1 for p in sorted_positions[:half] if p.Error != 0)
+        second_errors = sum(1 for p in sorted_positions[half:] if p.Error != 0)
+        rate_first = first_errors / half * 100
+        rate_second = second_errors / (len(sorted_positions) - half) * 100
+        if rate_second > rate_first * 1.02:
+            trend = 'up'
+        elif rate_second < rate_first * 0.98:
+            trend = 'down'
+
     return {
         'value': round(combined, 2),
         'rate_orders': round(rate_orders, 2),
@@ -478,6 +543,7 @@ def calculate_non_conformity() -> dict:
         'total_errors': errors_orders + errors_parts,
         'by_machine': by_machine,
         'status': 'critical' if combined > NON_CONFORMITY_CRITICAL_PCT else 'normal',
+        'trend': trend,
     }
 
 
@@ -540,10 +606,11 @@ def calculate_detection_time() -> dict:
                 stop_event = subsequent.iloc[0]
                 dt = (stop_event['TimeStamp'] - error_event['TimeStamp']).total_seconds()
                 if 0 < dt < DETECTION_TIME_MAX_FILTER_SEC:
+                    ts = error_event['TimeStamp']
                     detection_times.append({
                         'machine': names.get(res_id, f'Machine {res_id}'),
                         'seconds': round(dt, 1),
-                        'timestamp': str(error_event['TimeStamp']),
+                        'timestamp': ts.strftime('%H:%M') if hasattr(ts, 'strftime') else str(ts)[11:16],
                     })
 
     avg_time = (
@@ -563,7 +630,7 @@ def calculate_detection_time() -> dict:
 # KPI 7 : Lead Time (heures / unite)
 # ============================================================================
 
-@_safe_kpi({'value': 0, 'distribution': [], 'count': 0})
+@_safe_kpi({'value': 0, 'distribution': [], 'count': 0, 'trend': 'stable'})
 def calculate_lead_time() -> dict:
     """Calcule le temps de traversee moyen par ordre de fabrication.
 
@@ -605,11 +672,23 @@ def calculate_lead_time() -> dict:
         for o, dt in valid_orders
     ]
 
+    # Tendance : compare lead time premiere moitie vs deuxieme moitie des ordres
+    trend = 'stable'
+    if len(durations_hours) >= 4:
+        half = len(durations_hours) // 2
+        avg_first = sum(durations_hours[:half]) / half
+        avg_second = sum(durations_hours[half:]) / (len(durations_hours) - half)
+        if avg_second > avg_first * 1.02:
+            trend = 'up'
+        elif avg_second < avg_first * 0.98:
+            trend = 'down'
+
     return {
         'value': round(avg_lt, 1),
         'distribution': distribution,
         'count': len(durations_hours),
         'status': 'warning' if avg_lt > LEAD_TIME_WARNING_HOURS else 'normal',
+        'trend': trend,
     }
 
 
@@ -667,7 +746,7 @@ def calculate_buffer_wait_time() -> dict:
 # KPI 9-10 : Consommation energetique (resume dashboard)
 # ============================================================================
 
-@_safe_kpi({'value': 0, 'unit': 'Wh/u', 'air_value': 0, 'air_unit': 'L/u', 'timeline': [], 'note': ''})
+@_safe_kpi({'value': 0, 'unit': 'Wh/u', 'air_value': 0, 'air_unit': 'L/u', 'timeline': [], 'note': '', 'trend': 'stable'})
 def calculate_energy_summary() -> dict:
     """Calcule la consommation energetique par unite produite.
 
@@ -745,13 +824,30 @@ def calculate_energy_summary() -> dict:
         for hour, mws in sorted(hourly.items())
     ]
 
+    # Statut : detecter une derive > 10 % entre premiere et deuxieme moitie de la timeline
+    energy_status = 'normal'
+    trend = 'stable'
+    if len(timeline) >= 4:
+        half = len(timeline) // 2
+        avg_first = sum(t['kwh'] for t in timeline[:half]) / half
+        avg_second = sum(t['kwh'] for t in timeline[half:]) / (len(timeline) - half)
+        if avg_first > 0:
+            drift_pct = (avg_second - avg_first) / avg_first * 100
+            if drift_pct > 10:
+                energy_status = 'warning'
+                trend = 'up'
+            elif drift_pct < -10:
+                energy_status = 'warning'
+                trend = 'down'
+
     return {
         'value': round(kwh_per_unit * 1000, 1),  # Affichage en Wh pour lisibilite
         'unit': 'Wh/u',
         'air_value': round(liters_per_unit, 2),
         'air_unit': 'L/u',
         'timeline': timeline,
-        'status': 'normal',
+        'status': energy_status,
+        'trend': trend,
         'note': 'Valeurs theoriques (capteurs reels indisponibles)',
     }
 
@@ -760,7 +856,7 @@ def calculate_energy_summary() -> dict:
 # KPI 11 : Taux d'occupation des buffers
 # ============================================================================
 
-@_safe_kpi({'value': 0, 'total_capacity': 0, 'occupied': 0, 'by_buffer': []})
+@_safe_kpi({'value': 0, 'total_capacity': 0, 'occupied': 0, 'by_buffer': [], 'trend': 'stable'})
 def calculate_buffer_occupancy() -> dict:
     """Calcule le taux d'occupation global et par buffer.
 
@@ -812,6 +908,7 @@ def calculate_buffer_occupancy() -> dict:
         'occupied': occupied,
         'by_buffer': by_buffer,
         'status': status,
+        'trend': 'stable',  # Donnee instantanee, pas de serie temporelle disponible
     }
 
 

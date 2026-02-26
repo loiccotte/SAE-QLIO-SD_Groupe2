@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}Energie - T'ELEFAN MES 4.0{% endblock %}
+{% block title %}Énergie - T'ÉLÉFAN MES 4.0{% endblock %}
+
+{% block header_center %}
+<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">
+    Énergie
+</h1>
+{% endblock %}
 
 {% block breadcrumbs %}
 <div class="border-t border-zinc-100 bg-zinc-50/50">
     <div class="max-w-[1400px] mx-auto px-4 py-2 text-sm">
         <a href="{{ url_for('main.dashboard') }}" class="text-zinc-400 hover:text-zinc-600 transition-colors">Accueil</a>
-        <span class="mx-1.5 text-zinc-300">/</span>
-        <span class="font-medium text-zinc-900">Energie</span>
+        <span class="mx-1.5 text-zinc-400">&gt;</span>
+        <span class="font-medium text-zinc-900">Énergie</span>
     </div>
 </div>
 {% endblock %}
@@ -43,21 +49,6 @@
 
 </div>
 
-<!-- Resume -->
-<div class="mt-6 bg-white rounded-2xl border border-zinc-200/50
-            shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] p-6">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="text-center">
-            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Energie par unite</p>
-            <p class="text-2xl font-bold font-mono text-zinc-900">{{ energy.value }} {{ energy.unit }}</p>
-        </div>
-        <div class="text-center">
-            <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Air comprime par unite</p>
-            <p class="text-2xl font-bold font-mono text-zinc-900">{{ energy.air_value }} {{ energy.air_unit }}</p>
-        </div>
-    </div>
-    <p class="text-xs text-zinc-400 text-center mt-4">{{ energy.note }}</p>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -70,10 +61,10 @@
             mode: 'lines+markers',
             x: tlData.map(function(d) { return d.period; }),
             y: tlData.map(function(d) { return d.kwh; }),
-            line: { color: '#16a34a', width: 2, shape: 'spline' },
-            marker: { size: 7, color: '#16a34a' },
+            line: { color: '#09b200', width: 2, shape: 'spline' },
+            marker: { size: 7, color: '#09b200' },
             fill: 'tozeroy',
-            fillcolor: 'rgba(22, 163, 74, 0.08)',
+            fillcolor: 'rgba(9, 178, 0, 0.08)',
             hovertemplate: '%{x}<br>%{y} Wh<extra></extra>'
         }], {
             xaxis: {
@@ -118,7 +109,7 @@
                 tickwidth: 1,
                 tickcolor: '#d4d4d8'
             },
-            bar: { color: '#16a34a', thickness: 0.75 },
+            bar: { color: '#09b200', thickness: 0.75 },
             bgcolor: '#f4f4f5',
             borderwidth: 0,
             steps: [
