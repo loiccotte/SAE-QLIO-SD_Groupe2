@@ -23,6 +23,9 @@ weasyprint==62.3               # Conversion HTML -> PDF
                                # /!\ Windows : necessite GTK3 (voir docs/INSTALLATION_VENV.md)
                                #     Si non installe, l'export bascule automatiquement en HTML
 
+# --- Serveur standalone ---
+waitress==3.0.0                # Serveur WSGI production (utilise par l'executable)
+
 # --- Tests ---
 pytest==8.2.2                  # Framework de tests unitaires
 pytest-flask==1.3.0            # Fixtures Flask pour pytest (client HTTP, app context)

@@ -12,6 +12,7 @@ absorber le delai de demarrage du conteneur Docker (race condition).
 
 import logging
 import os
+import sys
 import time
 from dotenv import load_dotenv
 from flask import Flask, render_template
@@ -41,19 +42,29 @@ def create_app() -> Flask:
     Returns:
         L'instance Flask configuree et prete a tourner.
     """
+    # Calcul du chemin de base (compatible PyInstaller et dev)
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     app = Flask(
         __name__,
-        template_folder='../templates',
-        static_folder='../static',
+        template_folder=os.path.join(base_path, 'templates'),
+        static_folder=os.path.join(base_path, 'static'),
     )
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    db_uri = os.getenv('DATABASE_URL', '')
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-prod')
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_pre_ping': True,   # Teste chaque connexion avant utilisation
-        'pool_recycle': 300,     # Recycle les connexions toutes les 5 min
-    }
+
+    # Options de pool uniquement pour les BDD distantes (pas SQLite)
+    if db_uri and not db_uri.startswith('sqlite'):
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+        }
 
     db.init_app(app)
 
@@ -86,6 +97,11 @@ def _wait_for_database(app: Flask) -> None:
     Args:
         app: L'instance Flask (necessaire pour le contexte applicatif).
     """
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if db_uri and db_uri.startswith('sqlite'):
+        logger.info("Base SQLite locale detectee, pas de retry necessaire.")
+        return
+
     from sqlalchemy import text
 
     with app.app_context():

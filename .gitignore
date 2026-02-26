@@ -23,5 +23,16 @@ Thumbs.db
 .pytest_cache/
 .claude/
 
+# Build PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Base SQLite generee (ne pas versionner, generee par scripts/convert_to_sqlite.py)
+data/*.db
+
+# Config locale
+config.ini
+
 # Interne — ne pas livrer
 instructions/

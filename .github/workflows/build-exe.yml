@@ -1,0 +1,64 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller waitress
+
+      - name: Convert MariaDB dump to SQLite
+        run: python scripts/convert_to_sqlite.py
+
+      - name: Build executable with PyInstaller
+        run: pyinstaller telefan.spec --noconfirm
+
+      - name: Verify build
+        run: |
+          Test-Path dist/TelefanMES/TelefanMES.exe
+          (Get-Item dist/TelefanMES/TelefanMES.exe).Length
+
+      - name: Create ZIP archive
+        run: Compress-Archive -Path dist/TelefanMES/* -DestinationPath TelefanMES-windows.zip
+
+      - name: Get short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> $env:GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ steps.sha.outputs.short }}
+          name: "T'ELEFAN MES 4.0 — Build ${{ steps.sha.outputs.short }}"
+          body: |
+            Build automatique depuis le commit `${{ github.sha }}`.
+
+            ## Installation
+            1. Telecharger `TelefanMES-windows.zip`
+            2. Dezipper dans un dossier
+            3. Double-cliquer sur `TelefanMES.exe`
+            4. Le navigateur s'ouvre automatiquement sur `http://localhost:5000`
+
+            ## Connexion base distante
+            Creer un fichier `config.ini` a cote de l'exe (voir `config.example.ini`).
+          files: TelefanMES-windows.zip
+          make_latest: true
