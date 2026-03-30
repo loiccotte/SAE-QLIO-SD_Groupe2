@@ -3,9 +3,7 @@
 {% block title %}Stock - T'ÉLÉFAN MES 4.0{% endblock %}
 
 {% block header_center %}
-<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">
-    Stock
-</h1>
+<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">Stock</h1>
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -20,147 +18,80 @@
 
 {% block content %}
 <h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Stock</h2>
-
-<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-    <!-- Taux d'occupation des buffers (Bar Chart) - 60% -->
-    <div class="lg:col-span-3 bg-white rounded-2xl border border-zinc-200/50
-                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-2xl border border-zinc-200/50 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-stock"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Taux d'occupation des buffers
-            </h3>
-            <div id="buffer-occ-chart" class="plotly-chart" style="height: 340px;"></div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Taux d'occupation des buffers</h3>
+                <span class="text-xs font-medium text-zinc-400">Objectif : &lt; 80%</span>
+            </div>
+            <div id="buffer-occ-chart" class="plotly-chart" style="min-height: 400px;"></div>
+            <div class="flex items-center justify-center gap-4 mt-3 text-[10px]">
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-green-100 border border-green-300"></span> Normal (&lt; 80%)</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-amber-100 border border-amber-300"></span> Alerte (80-90%)</span>
+                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-100 border border-red-300"></span> Critique (&gt; 90%)</span>
+            </div>
         </div>
     </div>
-
-    <!-- Variation du niveau de stock (Bar Chart) - 40% -->
-    <div class="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/50
-                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div class="bg-white rounded-2xl border border-zinc-200/50 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-stock"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Variation du niveau de stock
-            </h3>
-            <div id="stock-var-chart" class="plotly-chart" style="height: 340px;"></div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Variation du niveau de stock</h3>
+                <span class="text-xs font-medium text-zinc-400">Objectif : &lt; 20%</span>
+            </div>
+            <div id="stock-var-chart" class="plotly-chart" style="height: 400px;"></div>
         </div>
     </div>
-
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // --- Buffer Occupancy Bar Chart ---
     var boData = {{ buffer_occ.by_buffer | tojson }};
     if (boData && boData.length > 0) {
-        var colors = boData.map(function(d) {
-            return d.rate > 90 ? '#ef4444' : '#737373';
+        var gaugeTraces=[], numBuffers=boData.length, cols=Math.min(numBuffers,3), rows=Math.ceil(numBuffers/cols);
+        boData.forEach(function(d,i){
+            var row=Math.floor(i/cols),col=i%cols;
+            var barColor=d.rate>90?'#dc2626':d.rate>80?'#f59e0b':'#16a34a';
+            gaugeTraces.push({type:'indicator',mode:'gauge+number',value:d.rate,
+                number:{suffix:'%',font:{size:18,color:'#18181b'}},title:{text:d.name,font:{size:10,color:'#71717a'}},
+                gauge:{axis:{range:[0,100],tickwidth:1,tickcolor:'#d4d4d8',dtick:25,ticksuffix:'%'},
+                    bar:{color:barColor,thickness:0.75},bgcolor:'#f4f4f5',borderwidth:0,
+                    steps:[{range:[0,80],color:'#f0fdf4'},{range:[80,90],color:'#fffbeb'},{range:[90,100],color:'#fef2f2'}],
+                    threshold:{line:{color:'#18181b',width:2},thickness:0.7,value:80}},
+                domain:{row:row,column:col}});
         });
-        var annotations = [];
-        boData.forEach(function(d, i) {
-            if (d.rate > 90) {
-                annotations.push({
-                    x: d.name,
-                    y: d.rate,
-                    text: '>90%',
-                    showarrow: false,
-                    yshift: 12,
-                    font: { size: 9, color: '#ef4444', weight: 600 }
-                });
-            }
-        });
+        var height=rows*180+40;
+        Plotly.newPlot('buffer-occ-chart',gaugeTraces,{grid:{rows:rows,columns:cols,pattern:'independent'},margin:{t:20,b:10,l:30,r:30},paper_bgcolor:'transparent',height:height},{responsive:true,displayModeBar:false});
+        document.getElementById('buffer-occ-chart').style.minHeight=height+'px';
+    } else { document.getElementById('buffer-occ-chart').innerHTML='<div class="flex items-center justify-center h-full text-sm text-zinc-400">Aucune donnée de buffer disponible</div>'; }
 
-        Plotly.newPlot('buffer-occ-chart', [{
-            type: 'bar',
-            x: boData.map(function(d) { return d.name; }),
-            y: boData.map(function(d) { return d.rate; }),
-            marker: {
-                color: colors,
-                line: { width: 0 }
-            },
-            text: boData.map(function(d) { return d.rate.toFixed(1) + '%'; }),
-            textposition: 'outside',
-            textfont: { size: 9, color: '#71717a' },
-            hovertemplate: '%{x}<br>Occupation: %{y:.1f}%<br>Capacite: ' +
-                boData.map(function(d) { return d.capacity; }).join(',') + '<extra></extra>'
-        }], {
-            xaxis: {
-                tickfont: { size: 8, color: '#71717a' },
-                tickangle: -35
-            },
-            yaxis: {
-                title: { text: 'Occupation (%)', font: { size: 10, color: '#71717a' } },
-                range: [0, 105],
-                tickfont: { size: 10, color: '#71717a' },
-                gridcolor: '#f4f4f5',
-                ticksuffix: '%'
-            },
-            annotations: annotations,
-            margin: { t: 10, b: 90, l: 50, r: 10 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            bargap: 0.3,
-            height: 340
-        }, { responsive: true, displayModeBar: false });
-    } else {
-        document.getElementById('buffer-occ-chart').innerHTML =
-            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
-            'Aucune donnee de buffer disponible</div>';
-    }
-
-    // --- Stock Variation Bar Chart ---
     var svData = {{ stock_var.variations | tojson }};
     if (svData && svData.length > 0) {
-        Plotly.newPlot('stock-var-chart', [{
-            type: 'bar',
-            x: svData.map(function(d) { return d.buffer; }),
-            y: svData.map(function(d) { return d.variation_pct; }),
-            marker: {
-                color: '#737373',
-                line: { width: 0 }
-            },
-            text: svData.map(function(d) { return d.variation_pct.toFixed(1) + '%'; }),
-            textposition: 'outside',
-            textfont: { size: 9, color: '#71717a' },
-            hovertemplate: '%{x}<br>Variation: %{y:.1f}%<extra></extra>'
-        }], {
-            xaxis: {
-                tickfont: { size: 8, color: '#71717a' },
-                tickangle: -35
-            },
-            yaxis: {
-                title: { text: 'Variation (%)', font: { size: 10, color: '#71717a' } },
-                range: [0, Math.max(25, Math.max.apply(null, svData.map(function(d) { return d.variation_pct; })) * 1.2)],
-                tickfont: { size: 10, color: '#71717a' },
-                gridcolor: '#f4f4f5',
-                ticksuffix: '%'
-            },
-            shapes: [{
-                type: 'line',
-                x0: 0, x1: 1, xref: 'paper',
-                y0: 20, y1: 20,
-                line: { color: '#ef4444', width: 1.5, dash: 'dash' }
-            }],
-            annotations: [{
-                x: 1, xref: 'paper', xanchor: 'right',
-                y: 20, yanchor: 'bottom',
-                text: 'Alerte 20%',
-                showarrow: false,
-                font: { size: 9, color: '#ef4444' }
-            }],
-            margin: { t: 10, b: 90, l: 50, r: 10 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            bargap: 0.3,
-            height: 340
-        }, { responsive: true, displayModeBar: false });
-    } else {
-        document.getElementById('stock-var-chart').innerHTML =
-            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
-            'Aucune donnee de variation de stock disponible</div>';
-    }
+        var xLabels=svData.map(function(d){return d.buffer;}), yValues=svData.map(function(d){return d.variation_pct;});
+        var windowSize=Math.min(3,yValues.length), movingAvg=[];
+        for(var i=0;i<yValues.length;i++){var s=Math.max(0,i-windowSize+1);var sub=yValues.slice(s,i+1);movingAvg.push(Math.round(sub.reduce(function(a,b){return a+b;},0)/sub.length*10)/10);}
+        var n=yValues.length,sumX=0,sumY=0,sumXY=0,sumX2=0;
+        for(var i=0;i<n;i++){sumX+=i;sumY+=yValues[i];sumXY+=i*yValues[i];sumX2+=i*i;}
+        var slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX),intcpt=(sumY-slope*sumX)/n;
+        var trendY=[];for(var i=0;i<n;i++){trendY.push(intcpt+slope*i);}var trendUp=slope>=0;
+        var maxY=Math.max.apply(null,yValues), yMax=Math.max(25,maxY*1.2);
+        Plotly.newPlot('stock-var-chart',[
+            {type:'scatter',mode:'lines+markers',name:'Variation stock',x:xLabels,y:yValues,
+             line:{color:'#737373',width:2,shape:'spline'},marker:{size:8,color:yValues.map(function(v){return v>20?'#dc2626':'#737373';})},
+             fill:'tozeroy',fillcolor:'rgba(115,115,115,0.06)',hovertemplate:'%{x}<br>Variation: %{y:.1f}%<extra></extra>'},
+            {type:'scatter',mode:'lines',name:'Moyenne mobile',x:xLabels,y:movingAvg,line:{color:'#9333ea',width:2,shape:'spline',dash:'dash'},hovertemplate:'Moyenne: %{y:.1f}%<extra></extra>'},
+            {type:'scatter',mode:'lines',name:'Tendance '+(trendUp?'(hausse)':'(baisse)'),x:xLabels,y:trendY,line:{color:trendUp?'#dc2626':'#16a34a',width:1.5,dash:'dot'},hoverinfo:'skip'}
+        ],{
+            xaxis:{title:{text:'Buffer',font:{size:11,color:'#52525b'}},tickfont:{size:8,color:'#71717a'},tickangle:-35},
+            yaxis:{title:{text:'Variation (%)',font:{size:11,color:'#52525b'}},range:[0,yMax],tickfont:{size:10,color:'#71717a'},gridcolor:'#f4f4f5',ticksuffix:'%'},
+            shapes:[{type:'line',x0:0,x1:1,xref:'paper',y0:20,y1:20,line:{color:'#ef4444',width:2,dash:'dash'}}],
+            annotations:[{x:1,xref:'paper',xanchor:'right',y:20,yanchor:'bottom',text:'Objectif 20%',showarrow:false,font:{size:9,color:'#ef4444'}}],
+            legend:{orientation:'h',y:-0.3,x:0.5,xanchor:'center',font:{size:9}},
+            margin:{t:10,b:100,l:50,r:10},paper_bgcolor:'transparent',plot_bgcolor:'transparent',height:400
+        },{responsive:true,displayModeBar:false});
+    } else { document.getElementById('stock-var-chart').innerHTML='<div class="flex items-center justify-center h-full text-sm text-zinc-400">Aucune donnée de variation de stock disponible</div>'; }
 </script>
 {% endblock %}

@@ -3,9 +3,7 @@
 {% block title %}Énergie - T'ÉLÉFAN MES 4.0{% endblock %}
 
 {% block header_center %}
-<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">
-    Énergie
-</h1>
+<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">Énergie</h1>
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -19,114 +17,72 @@
 {% endblock %}
 
 {% block content %}
-<h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Energie</h2>
-
+<h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Énergie</h2>
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-    <!-- Consommation energetique (Line Chart) - 60% -->
-    <div class="lg:col-span-3 bg-white rounded-2xl border border-zinc-200/50
-                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div class="lg:col-span-3 bg-white rounded-2xl border border-zinc-200/50 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-energie"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Consommation energetique
-            </h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Consommation énergétique</h3>
+                <span class="text-xs font-medium text-zinc-400">Valeurs en kW</span>
+            </div>
             <div id="energy-timeline-chart" class="plotly-chart" style="height: 320px;"></div>
         </div>
     </div>
-
-    <!-- Consommation Air comprime (Gauge) - 40% -->
-    <div class="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/50
-                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div class="lg:col-span-2 bg-white rounded-2xl border border-zinc-200/50 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-energie"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Consommation Air comprime
-            </h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Consommation Air comprimé</h3>
+                <span class="text-xs font-medium text-zinc-400">Pression (bar)</span>
+            </div>
             <div id="air-gauge" class="plotly-chart" style="height: 280px;"></div>
+            <div class="flex items-center gap-2 mt-3 justify-center">
+                <span class="text-sm font-bold" style="color: #16a637;">&#9650;</span>
+                <span class="text-xs font-medium text-zinc-500">{{ energy.air_value }} L/u = {{ "%.2f"|format(energy.air_value * 0.001) }} bar equiv.</span>
+            </div>
         </div>
     </div>
-
 </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // --- Energy Timeline Chart ---
     var tlData = {{ energy.timeline | tojson }};
     if (tlData && tlData.length > 0) {
-        Plotly.newPlot('energy-timeline-chart', [{
-            type: 'scatter',
-            mode: 'lines+markers',
-            x: tlData.map(function(d) { return d.period; }),
-            y: tlData.map(function(d) { return d.kwh; }),
-            line: { color: '#09b200', width: 2, shape: 'spline' },
-            marker: { size: 7, color: '#09b200' },
-            fill: 'tozeroy',
-            fillcolor: 'rgba(9, 178, 0, 0.08)',
-            hovertemplate: '%{x}<br>%{y} Wh<extra></extra>'
-        }], {
-            xaxis: {
-                title: { text: 'Heure', font: { size: 10, color: '#71717a' } },
-                tickfont: { size: 10, color: '#71717a' }
-            },
-            yaxis: {
-                title: { text: 'Consommation (Wh)', font: { size: 10, color: '#71717a' } },
-                tickfont: { size: 10, color: '#71717a' },
-                gridcolor: '#f4f4f5',
-                rangemode: 'tozero'
-            },
-            margin: { t: 10, b: 50, l: 55, r: 10 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            height: 320
-        }, { responsive: true, displayModeBar: false });
-    } else {
-        document.getElementById('energy-timeline-chart').innerHTML =
-            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
-            'Aucune donnee de consommation disponible</div>';
-    }
+        var yValues=tlData.map(function(d){return d.kwh;});
+        var avgEnergy=yValues.reduce(function(a,b){return a+b;},0)/yValues.length;
+        var n=yValues.length,sumX=0,sumY=0,sumXY=0,sumX2=0;
+        for(var i=0;i<n;i++){sumX+=i;sumY+=yValues[i];sumXY+=i*yValues[i];sumX2+=i*i;}
+        var slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX),intcpt=(sumY-slope*sumX)/n;
+        var trendY=[];for(var i=0;i<n;i++){trendY.push(intcpt+slope*i);}var trendUp=slope>=0;
+        Plotly.newPlot('energy-timeline-chart',[
+            {type:'scatter',mode:'lines+markers',name:'Consommation (kW)',x:tlData.map(function(d){return d.period;}),y:yValues,
+             line:{color:'#09b200',width:2.5,shape:'spline'},marker:{size:7,color:'#09b200'},fill:'tozeroy',fillcolor:'rgba(9,178,0,0.08)',
+             hovertemplate:'%{x}<br>%{y:.1f} kW<extra></extra>'},
+            {type:'scatter',mode:'lines',name:'Tendance '+(trendUp?'(hausse)':'(baisse)'),x:tlData.map(function(d){return d.period;}),y:trendY,
+             line:{color:trendUp?'#dc2626':'#16a34a',width:1.5,dash:'dot'},hoverinfo:'skip'}
+        ],{
+            xaxis:{title:{text:'Heure de production',font:{size:11,color:'#52525b'}},tickfont:{size:10,color:'#71717a'}},
+            yaxis:{title:{text:'Puissance (kW)',font:{size:11,color:'#52525b'}},tickfont:{size:10,color:'#71717a'},gridcolor:'#f4f4f5',rangemode:'tozero',ticksuffix:' kW'},
+            shapes:[{type:'line',x0:0,x1:1,xref:'paper',y0:avgEnergy,y1:avgEnergy,line:{color:'#f59e0b',width:2,dash:'dash'}}],
+            annotations:[{x:1,xref:'paper',xanchor:'right',y:avgEnergy,yanchor:'bottom',text:'Objectif moy. '+avgEnergy.toFixed(1)+' kW',showarrow:false,font:{size:9,color:'#f59e0b'}}],
+            legend:{orientation:'h',y:-0.25,x:0.5,xanchor:'center',font:{size:10}},
+            margin:{t:10,b:60,l:65,r:10},paper_bgcolor:'transparent',plot_bgcolor:'transparent',height:320
+        },{responsive:true,displayModeBar:false});
+    } else { document.getElementById('energy-timeline-chart').innerHTML='<div class="flex items-center justify-center h-full text-sm text-zinc-400">Aucune donnée de consommation disponible</div>'; }
 
-    // --- Air Comprime Gauge ---
-    var airValue = {{ energy.air_value | tojson }};
-    var airMax = Math.max(airValue * 2, 5);
-    var nominal = airValue;
-    var lowThreshold = nominal * 0.85;
-    var highThreshold = nominal * 1.15;
-
-    Plotly.newPlot('air-gauge', [{
-        type: 'indicator',
-        mode: 'gauge+number',
-        value: airValue,
-        number: {
-            suffix: ' L/u',
-            font: { size: 32, color: '#18181b' }
-        },
-        gauge: {
-            axis: {
-                range: [0, airMax],
-                tickwidth: 1,
-                tickcolor: '#d4d4d8'
-            },
-            bar: { color: '#09b200', thickness: 0.75 },
-            bgcolor: '#f4f4f5',
-            borderwidth: 0,
-            steps: [
-                { range: [0, lowThreshold], color: '#fef2f2' },
-                { range: [lowThreshold, highThreshold], color: '#f0fdf4' },
-                { range: [highThreshold, airMax], color: '#fef2f2' }
-            ],
-            threshold: {
-                line: { color: '#18181b', width: 3 },
-                thickness: 0.8,
-                value: nominal
-            }
-        }
-    }], {
-        margin: { t: 20, b: 10, l: 40, r: 40 },
-        paper_bgcolor: 'transparent',
-        height: 280
-    }, { responsive: true, displayModeBar: false });
+    var airValue={{energy.air_value|tojson}}, airBar=Math.round(airValue*100)/100, airMax=Math.max(airBar*2,5);
+    var nominal=airBar, lowThreshold=nominal*0.85, highThreshold=nominal*1.15;
+    Plotly.newPlot('air-gauge',[{
+        type:'indicator',mode:'gauge+number',value:airBar,
+        number:{suffix:' bar',font:{size:32,color:'#18181b'}},
+        gauge:{axis:{range:[0,airMax],tickwidth:1,tickcolor:'#d4d4d8',ticksuffix:' bar'},
+            bar:{color:'#09b200',thickness:0.75},bgcolor:'#f4f4f5',borderwidth:0,
+            steps:[{range:[0,lowThreshold],color:'#fef2f2'},{range:[lowThreshold,highThreshold],color:'#f0fdf4'},{range:[highThreshold,airMax],color:'#fef2f2'}],
+            threshold:{line:{color:'#18181b',width:3},thickness:0.8,value:nominal}}
+    }],{margin:{t:20,b:10,l:40,r:40},paper_bgcolor:'transparent',height:280,
+        annotations:[{x:0.5,y:-0.05,xref:'paper',yref:'paper',text:'Nominal: '+nominal.toFixed(2)+' bar | PSI: '+(nominal*14.5038).toFixed(1),showarrow:false,font:{size:9,color:'#71717a'}}]
+    },{responsive:true,displayModeBar:false});
 </script>
 {% endblock %}

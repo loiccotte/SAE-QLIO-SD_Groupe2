@@ -7,7 +7,7 @@ class TestLogin:
     def test_login_page_renders(self, client):
         resp = client.get('/login')
         assert resp.status_code == 200
-        assert b'ELEFAN' in resp.data
+        assert b'FAN MES 4.0' in resp.data
 
     def test_login_valid_admin(self, client):
         resp = client.post('/login', data={

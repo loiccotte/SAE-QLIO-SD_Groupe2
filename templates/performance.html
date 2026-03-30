@@ -28,14 +28,44 @@
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                OEE - Taux de Rendement Global
-            </h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                    OEE - Taux de Rendement Global
+                </h3>
+                <span class="text-xs font-medium text-zinc-400">Objectif : 85%</span>
+            </div>
             <div id="oee-gauge" class="plotly-chart" style="height: 260px;"></div>
+            <!-- Barre de progression visuelle -->
+            <div class="mt-4">
+                <div class="flex items-center justify-between text-[10px] text-zinc-400 mb-1">
+                    <span>0%</span>
+                    <span class="font-semibold text-zinc-600">{{ oee.value }}%</span>
+                    <span>100%</span>
+                </div>
+                <div class="h-3 bg-zinc-100 rounded-full overflow-hidden relative">
+                    <div class="h-full rounded-full transition-all duration-500
+                        {% if oee.value >= 85 %}bg-green-500{% elif oee.value >= 60 %}bg-amber-500{% else %}bg-red-500{% endif %}"
+                         style="width: {{ oee.value }}%"></div>
+                    <div class="absolute top-0 h-full w-0.5 bg-zinc-900" style="left: 85%"></div>
+                </div>
+                <div class="flex justify-end mt-0.5">
+                    <span class="text-[9px] text-zinc-400" style="margin-right: calc(15% - 8px)">85%</span>
+                </div>
+            </div>
+            <!-- Tendance -->
+            <div class="flex items-center gap-2 mt-3">
+                {% if oee.value >= 85 %}
+                <span class="text-sm font-bold" style="color: #16a637;">&#9650;</span>
+                <span class="text-xs font-medium text-green-600">Objectif atteint</span>
+                {% else %}
+                <span class="text-sm font-bold" style="color: #ff000f;">&#9660;</span>
+                <span class="text-xs font-medium text-red-600">Sous l'objectif ({{ (85 - oee.value)|round(1) }}% restant)</span>
+                {% endif %}
+            </div>
             <!-- Sous-detail Dispo / Perf / Qualite -->
             <div class="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-zinc-100">
                 <div class="text-center">
-                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Disponibilite</p>
+                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Disponibilité</p>
                     <p class="text-lg font-semibold font-mono text-zinc-900">{{ oee.availability }}%</p>
                 </div>
                 <div class="text-center">
@@ -43,63 +73,63 @@
                     <p class="text-lg font-semibold font-mono text-zinc-900">{{ oee.performance }}%</p>
                 </div>
                 <div class="text-center">
-                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Qualite</p>
+                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Qualité</p>
                     <p class="text-lg font-semibold font-mono text-zinc-900">{{ oee.quality }}%</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Taux d'utilisation machine (Bar Chart) -->
+    <!-- Taux d'utilisation machine -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Taux d'utilisation par mois
-            </h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                    Taux d'utilisation machine
+                </h3>
+                <span class="text-xs font-medium text-zinc-400">Objectif : 70%</span>
+            </div>
             <div id="utilization-chart" class="plotly-chart" style="height: 320px;"></div>
         </div>
     </div>
 
-    <!-- Cadence reelle (Line Chart) -->
+    <!-- Cadence reelle -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-perf"></div>
         <div class="p-6">
             <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Cadence reelle
+                Cadence réelle
             </h3>
             <div id="throughput-chart" class="plotly-chart" style="height: 280px;"></div>
         </div>
     </div>
 
-    <!-- Temps moyen de cycle (Large Value) -->
+    <!-- Temps moyen de cycle -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-perf"></div>
-        <div class="p-6 flex flex-col items-center justify-center min-h-[340px]">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-8">
-                Temps moyen de cycle
-            </h3>
-            <div class="flex items-baseline gap-2">
-                <span class="text-7xl font-bold tracking-tighter font-mono text-zinc-900">
-                    {{ cycle_time.value }}
-                </span>
-                <span class="text-xl text-zinc-400 font-medium">s</span>
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                    Temps moyen de cycle
+                </h3>
+                <span class="text-xs font-medium text-zinc-400">Objectif : &lt; 50s</span>
             </div>
-            {% if cycle_time.status == 'warning' %}
-            <div class="mt-4 flex items-center gap-1.5">
-                <span class="alert-blink">
-                    <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                    </svg>
-                </span>
-                <span class="text-xs font-medium text-amber-600">Au-dessus du seuil nominal</span>
+            <div id="cycle-time-chart" class="plotly-chart" style="height: 260px;"></div>
+            <div class="flex items-center gap-2 mt-3">
+                {% if cycle_time.status == 'warning' %}
+                <span class="text-sm font-bold" style="color: #ff000f;">&#9660;</span>
+                <span class="text-xs font-medium text-red-600">Au-dessus de l'objectif ({{ cycle_time.value }}s)</span>
+                {% else %}
+                <span class="text-sm font-bold" style="color: #16a637;">&#9650;</span>
+                <span class="text-xs font-medium text-green-600">Objectif respecté ({{ cycle_time.value }}s)</span>
+                {% endif %}
             </div>
-            {% endif %}
-            <p class="text-sm text-zinc-400 mt-3">
-                Calcule sur {{ cycle_time.count }} etapes de production
+            <p class="text-xs text-zinc-400 mt-2">
+                Calculé sur {{ cycle_time.count }} étapes de production
             </p>
         </div>
     </div>
@@ -115,123 +145,105 @@
         type: 'indicator',
         mode: 'gauge+number',
         value: oeeValue,
-        number: {
-            suffix: '%',
-            font: { size: 42, color: '#18181b' }
-        },
+        number: { suffix: '%', font: { size: 42, color: '#18181b' } },
         gauge: {
-            axis: {
-                range: [0, 100],
-                tickwidth: 1,
-                tickcolor: '#d4d4d8',
-                dtick: 20
-            },
-            bar: { color: '#ff0000', thickness: 0.75 },
-            bgcolor: '#f4f4f5',
-            borderwidth: 0,
+            axis: { range: [0, 100], tickwidth: 1, tickcolor: '#d4d4d8', dtick: 10, ticksuffix: '%' },
+            bar: { color: oeeValue >= 85 ? '#16a34a' : oeeValue >= 60 ? '#f59e0b' : '#dc2626', thickness: 0.75 },
+            bgcolor: '#f4f4f5', borderwidth: 0,
             steps: [
                 { range: [0, 60], color: '#fef2f2' },
                 { range: [60, 85], color: '#fffbeb' },
                 { range: [85, 100], color: '#f0fdf4' }
             ],
-            threshold: {
-                line: { color: '#18181b', width: 3 },
-                thickness: 0.8,
-                value: 85
-            }
+            threshold: { line: { color: '#18181b', width: 3 }, thickness: 0.8, value: 85 }
         }
     }], {
-        margin: { t: 10, b: 10, l: 40, r: 40 },
-        paper_bgcolor: 'transparent',
-        height: 260
+        margin: { t: 10, b: 10, l: 40, r: 40 }, paper_bgcolor: 'transparent', height: 260,
+        annotations: [{ x: 0.5, y: -0.15, xref: 'paper', yref: 'paper',
+            text: '<b>Rouge</b> < 60% | <b>Orange</b> 60-85% | <b>Vert</b> > 85%',
+            showarrow: false, font: { size: 9, color: '#71717a' } }]
     }, { responsive: true, displayModeBar: false });
 
-    // --- Utilization Bar Chart (par mois) ---
-    var utilData = {{ utilization.by_month | tojson }};
+    // --- Utilization Bar Chart ---
+    var utilData = {{ utilization.by_machine | tojson }};
     if (utilData && utilData.length > 0) {
         Plotly.newPlot('utilization-chart', [{
             type: 'bar',
-            x: utilData.map(function(d) { return d.month; }),
+            x: utilData.map(function(d) { return d.name; }),
             y: utilData.map(function(d) { return d.value; }),
-            marker: {
-                color: utilData.map(function(d) {
-                    return d.alert ? '#ff0000' : '#ffaaaa';
-                }),
-                line: { width: 0 }
-            },
+            marker: { color: utilData.map(function(d) {
+                if (d.value >= 90) return '#dc2626';
+                if (d.value >= 70) return '#16a34a';
+                return '#f59e0b';
+            }), line: { width: 0 } },
             text: utilData.map(function(d) { return d.value.toFixed(1) + '%'; }),
-            textposition: 'outside',
-            textfont: { size: 10, color: '#71717a' },
+            textposition: 'outside', textfont: { size: 10, color: '#71717a' },
             hovertemplate: '%{x}<br>Utilisation: %{y:.1f}%<extra></extra>'
         }], {
-            xaxis: {
-                tickfont: { size: 9, color: '#71717a' },
-                tickangle: -35
-            },
-            yaxis: {
-                title: { text: 'Utilisation (%)', font: { size: 10, color: '#71717a' } },
-                range: [0, 105],
-                tickfont: { size: 10, color: '#71717a' },
-                gridcolor: '#f4f4f5'
-            },
-            margin: { t: 10, b: 90, l: 45, r: 10 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            bargap: 0.35,
-            height: 320
+            xaxis: { title: { text: 'Machine', font: { size: 11, color: '#52525b' } }, tickfont: { size: 9, color: '#71717a' }, tickangle: -35 },
+            yaxis: { title: { text: 'Taux d\'utilisation (%)', font: { size: 11, color: '#52525b' } }, range: [0, 110], tickfont: { size: 10, color: '#71717a' }, gridcolor: '#f4f4f5', ticksuffix: '%' },
+            shapes: [
+                { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 70, y1: 70, line: { color: '#f59e0b', width: 2, dash: 'dash' } },
+                { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 90, y1: 90, line: { color: '#dc2626', width: 2, dash: 'dash' } }
+            ],
+            annotations: [
+                { x: 1, xref: 'paper', xanchor: 'right', y: 70, yanchor: 'bottom', text: 'Alerte 70%', showarrow: false, font: { size: 9, color: '#f59e0b' } },
+                { x: 1, xref: 'paper', xanchor: 'right', y: 90, yanchor: 'bottom', text: 'Critique 90%', showarrow: false, font: { size: 9, color: '#dc2626' } }
+            ],
+            margin: { t: 10, b: 90, l: 55, r: 10 }, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', bargap: 0.35, height: 320
         }, { responsive: true, displayModeBar: false });
     } else {
-        document.getElementById('utilization-chart').innerHTML =
-            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
-            'Aucune donnee d\'utilisation disponible</div>';
+        document.getElementById('utilization-chart').innerHTML = '<div class="flex items-center justify-center h-full text-sm text-zinc-400">Aucune donnée d\'utilisation machine disponible</div>';
     }
 
-    // --- Throughput Line Chart ---
+    // --- Throughput Line Chart with Trend ---
     var tpData = {{ throughput.monthly | tojson }};
-    var tpNominal = {{ throughput.nominal | tojson }};
     if (tpData && tpData.length > 0) {
-        Plotly.newPlot('throughput-chart', [{
-            type: 'scatter',
-            mode: 'lines+markers',
-            x: tpData.map(function(d) { return d.month; }),
-            y: tpData.map(function(d) { return d.value; }),
-            line: { color: '#ff0000', width: 2, shape: 'spline' },
-            marker: { size: 6, color: '#ff0000' },
-            fill: 'tozeroy',
-            fillcolor: 'rgba(255, 0, 0, 0.07)',
-            hovertemplate: '%{x}<br>%{y} pieces<extra></extra>'
-        }], {
-            xaxis: {
-                tickfont: { size: 10, color: '#71717a' },
-                tickangle: -30
-            },
-            yaxis: {
-                title: { text: 'Pieces produites', font: { size: 10, color: '#71717a' } },
-                tickfont: { size: 10, color: '#71717a' },
-                gridcolor: '#f4f4f5'
-            },
-            shapes: [{
-                type: 'line',
-                x0: 0, x1: 1, xref: 'paper',
-                y0: tpNominal, y1: tpNominal,
-                line: { color: '#18181b', width: 2, dash: 'dot' }
-            }],
-            annotations: [{
-                x: 1, xref: 'paper', xanchor: 'right',
-                y: tpNominal, yanchor: 'bottom',
-                text: 'Nominale',
-                showarrow: false,
-                font: { size: 9, color: '#18181b' }
-            }],
-            margin: { t: 10, b: 60, l: 50, r: 10 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            height: 280
+        var yValues = tpData.map(function(d) { return d.value; });
+        var avgThroughput = yValues.reduce(function(a, b) { return a + b; }, 0) / yValues.length;
+        var n = yValues.length;
+        var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        for (var i = 0; i < n; i++) { sumX += i; sumY += yValues[i]; sumXY += i * yValues[i]; sumX2 += i * i; }
+        var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        var intercept = (sumY - slope * sumX) / n;
+        var trendY = []; for (var i = 0; i < n; i++) { trendY.push(intercept + slope * i); }
+        var trendUp = slope >= 0;
+
+        Plotly.newPlot('throughput-chart', [
+            { type: 'scatter', mode: 'lines+markers', name: 'Cadence',
+              x: tpData.map(function(d) { return d.month; }), y: yValues,
+              line: { color: '#ff0000', width: 2, shape: 'spline' }, marker: { size: 6, color: '#ff0000' },
+              fill: 'tozeroy', fillcolor: 'rgba(255, 0, 0, 0.07)', hovertemplate: '%{x}<br>%{y} pièces<extra></extra>' },
+            { type: 'scatter', mode: 'lines', name: 'Tendance ' + (trendUp ? '(hausse)' : '(baisse)'),
+              x: tpData.map(function(d) { return d.month; }), y: trendY,
+              line: { color: trendUp ? '#16a34a' : '#dc2626', width: 2, dash: 'dot' }, hoverinfo: 'skip' }
+        ], {
+            xaxis: { title: { text: 'Période', font: { size: 11, color: '#52525b' } }, tickfont: { size: 10, color: '#71717a' }, tickangle: -30 },
+            yaxis: { title: { text: 'Pièces produites', font: { size: 11, color: '#52525b' } }, tickfont: { size: 10, color: '#71717a' }, gridcolor: '#f4f4f5', rangemode: 'tozero' },
+            shapes: [{ type: 'line', x0: 0, x1: 1, xref: 'paper', y0: avgThroughput, y1: avgThroughput, line: { color: '#71717a', width: 1.5, dash: 'dash' } }],
+            annotations: [{ x: 1, xref: 'paper', xanchor: 'right', y: avgThroughput, yanchor: 'bottom', text: 'Moy. ' + Math.round(avgThroughput), showarrow: false, font: { size: 9, color: '#71717a' } }],
+            legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center', font: { size: 10 } },
+            margin: { t: 10, b: 80, l: 50, r: 10 }, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', height: 280
         }, { responsive: true, displayModeBar: false });
     } else {
-        document.getElementById('throughput-chart').innerHTML =
-            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
-            'Aucune donnee de cadence disponible</div>';
+        document.getElementById('throughput-chart').innerHTML = '<div class="flex items-center justify-center h-full text-sm text-zinc-400">Aucune donnée de cadence disponible</div>';
     }
+
+    // --- Cycle Time Gauge ---
+    var ctValue = {{ cycle_time.value | tojson }};
+    Plotly.newPlot('cycle-time-chart', [{
+        type: 'indicator', mode: 'gauge+number', value: ctValue,
+        number: { suffix: 's', font: { size: 38, color: '#18181b' } },
+        gauge: {
+            axis: { range: [0, 100], tickwidth: 1, tickcolor: '#d4d4d8', dtick: 10, ticksuffix: 's' },
+            bar: { color: ctValue <= 50 ? '#16a34a' : '#dc2626', thickness: 0.75 },
+            bgcolor: '#f4f4f5', borderwidth: 0,
+            steps: [ { range: [0, 40], color: '#f0fdf4' }, { range: [40, 50], color: '#fffbeb' }, { range: [50, 100], color: '#fef2f2' } ],
+            threshold: { line: { color: '#18181b', width: 3 }, thickness: 0.8, value: 50 }
+        }
+    }], {
+        margin: { t: 10, b: 30, l: 40, r: 40 }, paper_bgcolor: 'transparent', height: 260,
+        annotations: [{ x: 0.5, y: -0.1, xref: 'paper', yref: 'paper', text: 'Objectif moyen : 50s', showarrow: false, font: { size: 10, color: '#71717a' } }]
+    }, { responsive: true, displayModeBar: false });
 </script>
 {% endblock %}

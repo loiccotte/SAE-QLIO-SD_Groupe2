@@ -86,7 +86,8 @@ MAX_EVENT_DURATION_SEC: int = 86_400  # 24 h
 OEE_CRITICAL_THRESHOLD: float = 60.0       # % OEE en dessous = critique
 OEE_WARNING_THRESHOLD: float = 85.0        # % OEE en dessous = warning
 
-UTILIZATION_WARNING_THRESHOLD: float = 70.0  # % utilisation machine
+UTILIZATION_WARNING_THRESHOLD: float = 70.0  # % utilisation en dessous = alerte
+UTILIZATION_CRITICAL_THRESHOLD: float = 90.0  # % utilisation au dessus = surcharge
 
 CYCLE_TIME_WARNING_SEC: float = 50.0       # secondes / piece
 CYCLE_TIME_MAX_FILTER_SEC: float = 3600.0  # filtre les aberrations
@@ -250,9 +251,9 @@ def calculate_oee() -> dict:
             if (s.End - s.Start).total_seconds() > 0
         )
         performance = (total_nominal / total_actual * 100) if total_actual > 0 else 0
-        performance = min(performance, 100)  # Plafonner a 100 %
+        performance = min(performance, 100)  # Plafonner a 100 % (norme)
     else:
-        performance = 85.0  # Valeur par defaut raisonnable
+        performance = 0.0  # Pas de donnees = indisponible
 
     # --- Qualite (pieces OK / total) ---
     total_pieces = OrderPosition.query.filter(
@@ -395,13 +396,6 @@ def calculate_throughput() -> dict:
     if len(positions) < 2:
         return {'value': 0, 'monthly': [], 'nominal': 60, 'status': 'normal'}
 
-    total_pieces = len(positions)
-    first_end = positions[0].End
-    last_end = positions[-1].End
-    total_hours = (last_end - first_end).total_seconds() / 3600
-
-    overall = (total_pieces / total_hours) if total_hours > 0 else 0
-
     # Ventilation mensuelle pour le graphique
     df = pd.DataFrame([{'End': p.End} for p in positions])
     df['month'] = df['End'].dt.to_period('M').astype(str)
@@ -410,6 +404,17 @@ def calculate_throughput() -> dict:
         {'month': row['month'], 'value': int(row['pieces'])}
         for _, row in monthly_counts.iterrows()
     ]
+
+    # Cadence basee sur le temps de fonctionnement effectif (temps Busy)
+    # plutot que la plage calendaire (qui inclut les gaps entre sessions)
+    machine_df = _get_machine_durations()
+    if not machine_df.empty:
+        busy_hours = machine_df[machine_df['Busy'] == 1]['Duration'].sum() / 3600
+    else:
+        busy_hours = 0
+
+    total_pieces = len(positions)
+    overall = (total_pieces / busy_hours) if busy_hours > 0 else 0
 
     return {
         'value': round(overall, 1),

@@ -19,47 +19,56 @@
 {% endblock %}
 
 {% block content %}
-<h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Qualite</h2>
+<h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Qualité</h2>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-    <!-- Taux de non-conformite (Gauge) -->
-    <div class="bg-white rounded-2xl border border-zinc-200/50
-                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div class="h-1.5 kpi-bar-qualite"></div>
-        <div class="p-6">
-            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
-                Taux de non-conformite
-            </h3>
-            <div id="nc-gauge" class="plotly-chart" style="height: 260px;"></div>
-            <!-- Detail des sources -->
-            <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-zinc-100">
-                <div class="text-center">
-                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Ordres de production</p>
-                    <p class="text-lg font-semibold font-mono text-zinc-900">{{ non_conformity.rate_orders }}%</p>
-                    <p class="text-[10px] text-zinc-400">{{ non_conformity.total_pieces }} pieces</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Rapports detection</p>
-                    <p class="text-lg font-semibold font-mono text-zinc-900">{{ non_conformity.rate_parts }}%</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Temps de detection defaut (Bar Chart) -->
+    <!-- Taux de conformité (Gauge) -->
     <div class="bg-white rounded-2xl border border-zinc-200/50
                 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
         <div class="h-1.5 kpi-bar-qualite"></div>
         <div class="p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Temps de detection defaut
+                    Taux de conformité
+                </h3>
+                <span class="text-xs font-medium text-zinc-400">Objectif : &gt; 98%</span>
+            </div>
+            <div id="nc-gauge" class="plotly-chart" style="height: 260px;"></div>
+            <div class="flex items-center gap-2 mt-3">
+                {% if (100 - non_conformity.value) >= 98 %}
+                <span class="text-sm font-bold" style="color: #16a637;">&#9650;</span>
+                <span class="text-xs font-medium text-green-600">Objectif atteint</span>
+                {% else %}
+                <span class="text-sm font-bold" style="color: #ff000f;">&#9660;</span>
+                <span class="text-xs font-medium text-red-600">Sous l'objectif</span>
+                {% endif %}
+            </div>
+            <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-zinc-100">
+                <div class="text-center">
+                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Conformité (ordres)</p>
+                    <p class="text-lg font-semibold font-mono text-zinc-900">{{ (100 - non_conformity.rate_orders)|round(1) }}%</p>
+                    <p class="text-[10px] text-zinc-400">{{ non_conformity.total_pieces }} pièces</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[10px] text-zinc-400 uppercase tracking-wide">Conformité (détection)</p>
+                    <p class="text-lg font-semibold font-mono text-zinc-900">{{ (100 - non_conformity.rate_parts)|round(1) }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Temps détec. Arrêt Machine -->
+    <div class="bg-white rounded-2xl border border-zinc-200/50
+                shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="h-1.5 kpi-bar-qualite"></div>
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                    Temps détec. Arrêt Machine
                 </h3>
                 <div class="flex items-center gap-1.5">
-                    <span class="text-sm font-semibold font-mono text-zinc-900">
-                        {{ detection_time.value }}s
-                    </span>
+                    <span class="text-sm font-semibold font-mono text-zinc-900">{{ detection_time.value }}s</span>
                     <span class="text-[10px] text-zinc-400">moy.</span>
                     {% if detection_time.status == 'critical' %}
                     <span class="alert-blink ml-1">
@@ -71,8 +80,17 @@
                 </div>
             </div>
             <div id="detection-chart" class="plotly-chart" style="height: 320px;"></div>
-            <p class="text-xs text-zinc-400 mt-3">
-                {{ detection_time.count }} evenements detectes
+            <div class="flex items-center gap-2 mt-3">
+                {% if detection_time.value <= 10 %}
+                <span class="text-sm font-bold" style="color: #16a637;">&#9650;</span>
+                <span class="text-xs font-medium text-green-600">Objectif atteint (&lt; 10s)</span>
+                {% else %}
+                <span class="text-sm font-bold" style="color: #ff000f;">&#9660;</span>
+                <span class="text-xs font-medium text-red-600">Au-dessus de l'objectif (&gt; 10s)</span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-zinc-400 mt-2">
+                {{ detection_time.count }} événements détectés — Temps entre détection erreur et arrêt machine
             </p>
         </div>
     </div>
@@ -82,94 +100,65 @@
 
 {% block scripts %}
 <script>
-    // --- Non-conformite Gauge ---
+    // --- Taux de conformité Gauge ---
     var ncValue = {{ non_conformity.value | tojson }};
+    var conformityValue = Math.round((100 - ncValue) * 10) / 10;
     Plotly.newPlot('nc-gauge', [{
-        type: 'indicator',
-        mode: 'gauge+number',
-        value: ncValue,
-        number: {
-            suffix: '%',
-            font: { size: 42, color: '#18181b' }
-        },
+        type: 'indicator', mode: 'gauge+number', value: conformityValue,
+        number: { suffix: '%', font: { size: 42, color: '#18181b' } },
         gauge: {
-            axis: {
-                range: [0, 5],
-                tickwidth: 1,
-                tickcolor: '#d4d4d8',
-                dtick: 1
-            },
-            bar: { color: '#38b6ff', thickness: 0.75 },
-            bgcolor: '#f4f4f5',
-            borderwidth: 0,
-            steps: [
-                { range: [0, 2], color: '#f0fdf4' },
-                { range: [2, 3.5], color: '#fffbeb' },
-                { range: [3.5, 5], color: '#fef2f2' }
-            ],
-            threshold: {
-                line: { color: '#18181b', width: 3 },
-                thickness: 0.8,
-                value: 2
-            }
+            axis: { range: [90, 100], tickwidth: 1, tickcolor: '#d4d4d8', dtick: 1, ticksuffix: '%' },
+            bar: { color: conformityValue >= 98 ? '#16a34a' : conformityValue >= 96.5 ? '#f59e0b' : '#dc2626', thickness: 0.75 },
+            bgcolor: '#f4f4f5', borderwidth: 0,
+            steps: [ { range: [90, 96.5], color: '#fef2f2' }, { range: [96.5, 98], color: '#fffbeb' }, { range: [98, 100], color: '#f0fdf4' } ],
+            threshold: { line: { color: '#18181b', width: 3 }, thickness: 0.8, value: 98 }
         }
     }], {
-        margin: { t: 10, b: 10, l: 40, r: 40 },
-        paper_bgcolor: 'transparent',
-        height: 260
+        margin: { t: 10, b: 10, l: 40, r: 40 }, paper_bgcolor: 'transparent', height: 260,
+        annotations: [{ x: 0.5, y: -0.15, xref: 'paper', yref: 'paper',
+            text: '<b>Rouge</b> < 96.5% | <b>Orange</b> 96.5-98% | <b>Vert</b> > 98%',
+            showarrow: false, font: { size: 9, color: '#71717a' } }]
     }, { responsive: true, displayModeBar: false });
 
-    // --- Detection Time Bar Chart ---
+    // --- Detection Time - Courbe de moyenne mobile + barre objectif ---
     var dtData = {{ detection_time.by_event | tojson }};
     if (dtData && dtData.length > 0) {
-        Plotly.newPlot('detection-chart', [{
-            type: 'bar',
-            x: dtData.map(function(d) { return d.timestamp; }),
-            y: dtData.map(function(d) { return d.seconds; }),
-            marker: {
-                color: dtData.map(function(d) {
-                    if (d.seconds > 10) return '#38b6ff';
-                    return '#bae0ff';
-                }),
-                line: { width: 0 }
-            },
-            text: dtData.map(function(d) { return d.seconds + 's'; }),
-            textposition: 'outside',
-            textfont: { size: 9, color: '#71717a' },
-            hovertemplate: '%{x}<br>Duree: %{y:.1f}s<extra></extra>'
-        }], {
-            xaxis: {
-                tickfont: { size: 8, color: '#71717a' },
-                tickangle: -45
-            },
-            yaxis: {
-                title: { text: 'Secondes', font: { size: 10, color: '#71717a' } },
-                tickfont: { size: 10, color: '#71717a' },
-                gridcolor: '#f4f4f5'
-            },
-            shapes: [{
-                type: 'line',
-                x0: 0, x1: 1, xref: 'paper',
-                y0: 10, y1: 10,
-                line: { color: '#ef4444', width: 1.5, dash: 'dash' }
-            }],
-            annotations: [{
-                x: 1, xref: 'paper', xanchor: 'right',
-                y: 10, yanchor: 'bottom',
-                text: 'Seuil 10s',
-                showarrow: false,
-                font: { size: 9, color: '#ef4444' }
-            }],
-            margin: { t: 10, b: 100, l: 45, r: 10 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            bargap: 0.3,
-            height: 320
+        var yValues = dtData.map(function(d) { return d.seconds; });
+        var windowSize = Math.min(5, yValues.length);
+        var movingAvg = [];
+        for (var i = 0; i < yValues.length; i++) {
+            var start = Math.max(0, i - windowSize + 1);
+            var subset = yValues.slice(start, i + 1);
+            var avg = subset.reduce(function(a, b) { return a + b; }, 0) / subset.length;
+            movingAvg.push(Math.round(avg * 10) / 10);
+        }
+        var xLabels = dtData.map(function(d, i) { return 'Evt ' + (i + 1); });
+        var n = yValues.length;
+        var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        for (var i = 0; i < n; i++) { sumX += i; sumY += yValues[i]; sumXY += i * yValues[i]; sumX2 += i * i; }
+        var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        var intcpt = (sumY - slope * sumX) / n;
+        var trendY = []; for (var i = 0; i < n; i++) { trendY.push(intcpt + slope * i); }
+        var trendUp = slope >= 0;
+
+        Plotly.newPlot('detection-chart', [
+            { type: 'scatter', mode: 'lines+markers', name: 'Moyenne mobile', x: xLabels, y: movingAvg,
+              line: { color: '#38b6ff', width: 2.5, shape: 'spline' }, marker: { size: 5, color: '#38b6ff' },
+              hovertemplate: '%{x}<br>Moyenne: %{y:.1f}s<extra></extra>' },
+            { type: 'scatter', mode: 'markers', name: 'Valeur brute', x: xLabels, y: yValues,
+              marker: { size: 4, color: '#93c5fd', opacity: 0.5 }, hovertemplate: '%{x}<br>Durée: %{y:.1f}s<extra></extra>' },
+            { type: 'scatter', mode: 'lines', name: 'Tendance ' + (trendUp ? '(hausse)' : '(baisse)'), x: xLabels, y: trendY,
+              line: { color: trendUp ? '#dc2626' : '#16a34a', width: 1.5, dash: 'dot' }, hoverinfo: 'skip' }
+        ], {
+            xaxis: { title: { text: 'Événement de détection', font: { size: 11, color: '#52525b' } }, tickfont: { size: 8, color: '#71717a' }, tickangle: -45 },
+            yaxis: { title: { text: 'Temps de détection (secondes)', font: { size: 11, color: '#52525b' } }, tickfont: { size: 10, color: '#71717a' }, gridcolor: '#f4f4f5', rangemode: 'tozero', ticksuffix: 's' },
+            shapes: [{ type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 10, y1: 10, line: { color: '#ef4444', width: 2, dash: 'dash' } }],
+            annotations: [{ x: 1, xref: 'paper', xanchor: 'right', y: 10, yanchor: 'bottom', text: 'Objectif 10s', showarrow: false, font: { size: 9, color: '#ef4444' } }],
+            legend: { orientation: 'h', y: -0.35, x: 0.5, xanchor: 'center', font: { size: 9 } },
+            margin: { t: 10, b: 110, l: 55, r: 10 }, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', height: 320
         }, { responsive: true, displayModeBar: false });
     } else {
-        document.getElementById('detection-chart').innerHTML =
-            '<div class="flex items-center justify-center h-full text-sm text-zinc-400">' +
-            'Aucun evenement de detection enregistre</div>';
+        document.getElementById('detection-chart').innerHTML = '<div class="flex items-center justify-center h-full text-sm text-zinc-400">Aucun événement de détection enregistré</div>';
     }
 </script>
 {% endblock %}
