@@ -106,7 +106,7 @@ Le dump SQL (`FestoMES-2026-03-31.sql`) est importe automatiquement au premier d
 
 ```bash
 git clone <url-du-depot>
-cd SAE-QLIO-SD
+cd SAE-QLIO-SD_Groupe2
 ```
 
 ### Etape 2 — Verifier que Docker Desktop est demarre
