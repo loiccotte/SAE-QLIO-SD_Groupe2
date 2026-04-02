@@ -45,16 +45,16 @@
         <div class="p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Temps d'attente en buffer</h3>
-                <span class="text-xs font-medium text-zinc-400">Objectif : &lt; 300s</span>
+                <span class="text-xs font-medium text-zinc-400">Objectif : &lt; 5 min</span>
             </div>
             <div id="buffer-wait-chart" class="plotly-chart" style="height: 320px;"></div>
             <div class="flex items-center gap-2 mt-3">
                 {% if buffer_wait.value <= 300 %}
                 <span class="text-sm font-bold" style="color: #16a637;">&#9650;</span>
-                <span class="text-xs font-medium text-green-600">Objectif atteint (moy. {{ buffer_wait.value }}s)</span>
+                <span class="text-xs font-medium text-green-600">Objectif atteint (moy. {{ "%.1f"|format(buffer_wait.value / 60) }} min)</span>
                 {% else %}
                 <span class="text-sm font-bold" style="color: #ff000f;">&#9660;</span>
-                <span class="text-xs font-medium text-red-600">Au-dessus de l'objectif (moy. {{ buffer_wait.value }}s)</span>
+                <span class="text-xs font-medium text-red-600">Au-dessus de l'objectif (moy. {{ "%.1f"|format(buffer_wait.value / 60) }} min)</span>
                 {% endif %}
             </div>
         </div>
@@ -65,7 +65,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="text-center"><p class="text-[10px] text-zinc-400 uppercase tracking-wide">Lead Time moyen</p><p class="text-2xl font-bold font-mono text-zinc-900">{{ lead_time.value }}h</p></div>
         <div class="text-center"><p class="text-[10px] text-zinc-400 uppercase tracking-wide">Ordres analysés</p><p class="text-2xl font-bold font-mono text-zinc-900">{{ lead_time.count }}</p></div>
-        <div class="text-center"><p class="text-[10px] text-zinc-400 uppercase tracking-wide">Temps buffer moyen</p><p class="text-2xl font-bold font-mono text-zinc-900">{{ buffer_wait.value }}s</p></div>
+        <div class="text-center"><p class="text-[10px] text-zinc-400 uppercase tracking-wide">Temps buffer moyen</p><p class="text-2xl font-bold font-mono text-zinc-900">{{ "%.1f"|format(buffer_wait.value / 60) }} min</p></div>
     </div>
 </div>
 {% endblock %}
@@ -101,23 +101,25 @@
 
     var bwData = {{ buffer_wait.by_event | tojson }};
     if (bwData && bwData.length > 0) {
-        var yValues=bwData.map(function(d){return d.seconds;}), maxY=Math.max.apply(null,yValues), yMax=Math.max(400,maxY*1.1);
+        // Convertir secondes en minutes pour lisibilite
+        var yValues=bwData.map(function(d){return Math.round(d.seconds/60*100)/100;}), maxY=Math.max.apply(null,yValues), yMax=Math.max(7,maxY*1.2);
+        var objMinutes=300/60; // objectif 300s = 5min
         var windowSize=Math.min(5,yValues.length), movingAvg=[];
-        for(var i=0;i<yValues.length;i++){var s=Math.max(0,i-windowSize+1);var sub=yValues.slice(s,i+1);movingAvg.push(Math.round(sub.reduce(function(a,b){return a+b;},0)/sub.length*10)/10);}
+        for(var i=0;i<yValues.length;i++){var s=Math.max(0,i-windowSize+1);var sub=yValues.slice(s,i+1);movingAvg.push(Math.round(sub.reduce(function(a,b){return a+b;},0)/sub.length*100)/100);}
         var n=yValues.length,sumX=0,sumY=0,sumXY=0,sumX2=0;
         for(var i=0;i<n;i++){sumX+=i;sumY+=yValues[i];sumXY+=i*yValues[i];sumX2+=i*i;}
         var slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX),intcpt=(sumY-slope*sumX)/n;
         var trendY=[];for(var i=0;i<n;i++){trendY.push(intcpt+slope*i);}var trendUp=slope>=0;
         var xLabels=bwData.map(function(d,i){return 'Evt '+(i+1);});
         Plotly.newPlot('buffer-wait-chart',[
-            {type:'scatter',mode:'lines+markers',name:'Temps attente',x:xLabels,y:yValues,line:{color:'#f2c0ff',width:1.5},marker:{size:4,color:'#f2c0ff'},hovertemplate:'%{x}<br>%{y:.1f}s<extra></extra>'},
-            {type:'scatter',mode:'lines',name:'Moyenne mobile',x:xLabels,y:movingAvg,line:{color:'#9333ea',width:2,shape:'spline'},hovertemplate:'Moyenne: %{y:.1f}s<extra></extra>'},
+            {type:'scatter',mode:'lines+markers',name:'Temps attente',x:xLabels,y:yValues,line:{color:'#f2c0ff',width:1.5},marker:{size:4,color:'#f2c0ff'},hovertemplate:'%{x}<br>%{y:.2f} min<extra></extra>'},
+            {type:'scatter',mode:'lines',name:'Moyenne mobile',x:xLabels,y:movingAvg,line:{color:'#9333ea',width:2,shape:'spline'},hovertemplate:'Moyenne: %{y:.2f} min<extra></extra>'},
             {type:'scatter',mode:'lines',name:'Tendance '+(trendUp?'(hausse)':'(baisse)'),x:xLabels,y:trendY,line:{color:trendUp?'#dc2626':'#16a34a',width:1.5,dash:'dot'},hoverinfo:'skip'}
         ],{
             xaxis:{title:{text:'Événement (ordre chronologique)',font:{size:11,color:'#52525b'}},tickfont:{size:8,color:'#71717a'},tickangle:-45},
-            yaxis:{title:{text:'Temps d\'attente (secondes)',font:{size:11,color:'#52525b'}},range:[0,yMax],tickfont:{size:10,color:'#71717a'},gridcolor:'#f4f4f5',dtick:Math.ceil(yMax/6/50)*50,ticksuffix:'s'},
-            shapes:[{type:'line',x0:0,x1:1,xref:'paper',y0:300,y1:300,line:{color:'#ef4444',width:2,dash:'dash'}}],
-            annotations:[{x:1,xref:'paper',xanchor:'right',y:300,yanchor:'bottom',text:'Objectif 300s',showarrow:false,font:{size:9,color:'#ef4444'}}],
+            yaxis:{title:{text:'Temps d\'attente (minutes)',font:{size:11,color:'#52525b'}},range:[0,yMax],tickfont:{size:10,color:'#71717a'},gridcolor:'#f4f4f5',dtick:Math.ceil(yMax/6),ticksuffix:' min'},
+            shapes:[{type:'line',x0:0,x1:1,xref:'paper',y0:objMinutes,y1:objMinutes,line:{color:'#ef4444',width:2,dash:'dash'}}],
+            annotations:[{x:1,xref:'paper',xanchor:'right',y:objMinutes,yanchor:'bottom',text:'Objectif 5 min',showarrow:false,font:{size:9,color:'#ef4444'}}],
             legend:{orientation:'h',y:-0.35,x:0.5,xanchor:'center',font:{size:9}},
             margin:{t:10,b:100,l:60,r:10},paper_bgcolor:'transparent',plot_bgcolor:'transparent',height:320
         },{responsive:true,displayModeBar:false});

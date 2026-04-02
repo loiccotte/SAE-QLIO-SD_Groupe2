@@ -408,6 +408,61 @@ def _apply_sqlite_connection() -> None:
     _write_env_database_url(uri)
 
 
+@bp.route('/import-bdd', methods=['POST'])
+@login_required
+@role_required('admin')
+def import_bdd():
+    """Importe un fichier SQL ou SQLite via upload/drag-drop."""
+    import shutil
+    import tempfile
+
+    uploaded = request.files.get('db_file')
+    if not uploaded or uploaded.filename == '':
+        flash('Aucun fichier selectionne.', 'error')
+        return redirect(url_for('main.config_bdd'))
+
+    filename = uploaded.filename
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+
+    if ext not in ('sql', 'db', 'sqlite', 'sqlite3'):
+        flash('Format non supporte. Utilisez .sql, .db ou .sqlite.', 'error')
+        return redirect(url_for('main.config_bdd'))
+
+    import sys
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    data_dir = os.path.join(base_dir, 'data')
+    os.makedirs(data_dir, exist_ok=True)
+
+    try:
+        if ext == 'sql':
+            # Importer le SQL dans une nouvelle base SQLite
+            import sqlite3
+            db_path = os.path.join(data_dir, 'mes4_import.db')
+            conn = sqlite3.connect(db_path)
+            sql_content = uploaded.read().decode('utf-8', errors='replace')
+            conn.executescript(sql_content)
+            conn.close()
+            uri = f'sqlite:///{db_path}'
+            _apply_db_connection(uri)
+            flash(f'Fichier SQL importe avec succes dans {os.path.basename(db_path)}.', 'success')
+        else:
+            # Fichier .db/.sqlite : copier directement
+            db_path = os.path.join(data_dir, 'mes4_import.db')
+            uploaded.save(db_path)
+            uri = f'sqlite:///{db_path}'
+            _apply_db_connection(uri)
+            flash(f'Base de donnees {filename} importee avec succes.', 'success')
+    except Exception as exc:
+        current_app.logger.error(f'Import BDD failed: {exc}')
+        flash(f'Erreur lors de l\'import : {str(exc)[:200]}', 'error')
+
+    return redirect(url_for('main.config_bdd'))
+
+
 def _write_env_database_url(uri: str) -> None:
     """Met a jour DATABASE_URL dans le fichier .env (cree si besoin)."""
     import sys

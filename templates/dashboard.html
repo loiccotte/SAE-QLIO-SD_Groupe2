@@ -17,32 +17,6 @@
     Tableau de bord global
 </h1>
 
-<!-- Barre de synthese globale -->
-<div class="mb-6 bg-white rounded-2xl border border-zinc-200/50
-            shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] p-4">
-    <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div class="w-2.5 h-2.5 rounded-full
-                {% if kpis.oee.status == 'critical' or kpis.non_conformity.status == 'critical' or kpis.buffer.status == 'critical' %}
-                bg-red-500 animate-pulse
-                {% elif kpis.oee.status == 'warning' or kpis.lead_time.status == 'warning' or kpis.buffer.status == 'warning' %}
-                bg-amber-500
-                {% else %}
-                bg-green-500
-                {% endif %}
-            "></div>
-            <span class="text-sm font-semibold text-zinc-700">Etat global de la ligne</span>
-        </div>
-        <div class="flex items-center gap-6 text-xs text-zinc-500">
-            <span>OEE <strong class="font-mono text-zinc-900">{{ kpis.oee.value }}%</strong></span>
-            <span>Qualite <strong class="font-mono text-zinc-900">{{ (100 - kpis.non_conformity.value)|round(1) }}%</strong></span>
-            <span>Lead Time <strong class="font-mono text-zinc-900">{{ kpis.lead_time.value }}h</strong></span>
-            <span>Energie <strong class="font-mono text-zinc-900">{{ kpis.energy.value }} {{ kpis.energy.unit }}</strong></span>
-            <span>Buffer <strong class="font-mono text-zinc-900">{{ kpis.buffer.value }}%</strong></span>
-        </div>
-    </div>
-</div>
-
 <!-- Ligne 1 : 3 cards (Performance, Qualite, Delai) -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
 
