@@ -4,23 +4,169 @@ Tableau de bord industriel pour le pilotage d'une ligne de production semi-autom
 
 Projet SAE BUT3 QLIO Science des Donnees.
 
+---
+
 ## Prerequis
 
-- [Python 3.10+](https://www.python.org/downloads/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (pour MariaDB)
+- [Python 3.10+](https://www.python.org/downloads/) (cocher **"Add Python to PATH"** lors de l'installation)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (uniquement pour la methode Docker)
 
-## Lancement rapide
+---
+
+## Methode 1 — Local avec SQLite (sans Docker)
+
+Cette methode utilise une base SQLite deja incluse dans le projet (`data/mes4.db`).
+Aucune installation de Docker n'est necessaire.
+
+### Etape 1 — Cloner le projet
 
 ```bash
-# Option 1 : Docker (MariaDB + app)
-docker compose up --build
+git clone <url-du-depot>
+cd SAE-QLIO-SD
+```
 
-# Option 2 : Local (SQLite)
+### Etape 2 — Creer et activer l'environnement virtuel
+
+```bash
+python -m venv venv
+```
+
+Activer le venv :
+
+- **Windows (cmd)** : `venv\Scripts\activate`
+- **Windows (PowerShell)** : `venv\Scripts\Activate.ps1`
+- **Windows (Git Bash)** : `source venv/Scripts/activate`
+- **Linux / macOS** : `source venv/bin/activate`
+
+Le prefixe `(venv)` doit apparaitre dans le terminal. **Toutes les commandes suivantes supposent le venv actif.**
+
+### Etape 3 — Installer les dependances
+
+```bash
 pip install -r requirements.txt
+```
+
+> **Note weasyprint (export PDF) :** Sur Windows, `weasyprint` necessite GTK3.
+> Si l'installation echoue, ce n'est **pas bloquant** : l'export PDF bascule automatiquement en HTML.
+> Pour activer le PDF natif : installer GTK3 depuis https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+
+### Etape 4 — Configurer le fichier .env
+
+Copier le fichier d'exemple :
+
+```bash
+cp .env.example .env
+```
+
+Puis **modifier** la ligne `DATABASE_URL` dans `.env` pour pointer vers SQLite :
+
+```env
+DATABASE_URL=sqlite:///data/mes4.db
+```
+
+Le fichier `.env` complet doit ressembler a :
+
+```env
+DATABASE_URL=sqlite:///data/mes4.db
+SECRET_KEY=exemple-secret-key-2025
+FLASK_APP=app.run:app
+FLASK_DEBUG=1
+```
+
+### Etape 5 — Lancer l'application
+
+```bash
 flask run
 ```
 
-L'application est accessible sur http://localhost:5000.
+L'application est accessible sur **http://localhost:5000**.
+
+### Etape 6 — Se connecter
+
+Voir la section [Comptes](#comptes) ci-dessous.
+
+---
+
+## Methode 2 — Docker (MariaDB + Flask)
+
+Cette methode lance **tout dans Docker** : MariaDB, Adminer et l'application Flask.
+Le dump SQL (`FestoMES-2026-03-31.sql`) est importe automatiquement au premier demarrage.
+
+### Etape 1 — Cloner le projet
+
+```bash
+git clone <url-du-depot>
+cd SAE-QLIO-SD
+```
+
+### Etape 2 — Verifier que Docker Desktop est demarre
+
+```bash
+docker info
+```
+
+Si cette commande affiche une erreur, ouvrir Docker Desktop et attendre que l'icone baleine apparaisse dans la barre des taches.
+
+### Etape 3 — Configurer le fichier .env
+
+Copier le fichier d'exemple :
+
+```bash
+cp .env.example .env
+```
+
+Puis **modifier** la ligne `DATABASE_URL` dans `.env` pour pointer vers le conteneur Docker :
+
+```env
+DATABASE_URL=mysql+pymysql://example_user:example_password@db:3306/mes4
+```
+
+Le fichier `.env` complet doit ressembler a :
+
+```env
+DATABASE_URL=mysql+pymysql://example_user:example_password@db:3306/mes4
+SECRET_KEY=exemple-secret-key-2025
+FLASK_APP=app.run:app
+FLASK_DEBUG=1
+```
+
+> **Important :** l'hote est bien `db` (nom du service Docker), pas `localhost`.
+
+### Etape 4 — Construire et lancer les conteneurs
+
+```bash
+docker compose up --build
+```
+
+Au premier lancement :
+- Docker telecharge les images MariaDB et Python (~500 Mo au total)
+- Le dump SQL est importe automatiquement dans MariaDB (peut prendre 1-2 minutes)
+- L'application Flask attend que MariaDB soit pret avant de demarrer (retries automatiques)
+
+Attendre le message suivant dans les logs :
+
+```
+app-1  |  * Running on http://127.0.0.1:5000
+```
+
+### Etape 5 — Acceder a l'application
+
+| Service | URL |
+|---------|-----|
+| Application Flask | http://localhost:5000 |
+| Adminer (interface BDD) | http://localhost:8081 |
+
+### Etape 6 — Se connecter
+
+Voir la section [Comptes](#comptes) ci-dessous.
+
+### Arreter les conteneurs
+
+- **Arreter** : `CTRL+C` dans le terminal ou `docker compose stop`
+- **Arreter et supprimer les conteneurs** : `docker compose down`
+- **Arreter et supprimer les donnees MariaDB** : `docker compose down -v`
+
+---
 
 ## Comptes
 
@@ -31,6 +177,18 @@ L'application est accessible sur http://localhost:5000.
 | operateur | oper123 | employe | Dashboard uniquement |
 
 Les mots de passe sont haches avec scrypt (werkzeug.security).
+
+---
+
+## Tests
+
+Les tests utilisent une base SQLite en memoire. **Docker n'est pas necessaire.**
+
+```bash
+python -m pytest tests/ -v
+```
+
+---
 
 ## Architecture
 
@@ -68,10 +226,13 @@ SAE-QLIO-SD/
 │   ├── carte.html               # Plan interactif ligne FESTO (Leaflet)
 │   └── config_bdd.html          # Config BDD, drag & drop import SQL
 ├── scripts/
+│   ├── convert_to_sqlite.py     # Conversion dump MySQL -> SQLite
 │   └── sanitize-sql.sh          # Nettoyage octets nuls avant import MariaDB
 ├── tests/                       # 61 tests (pytest)
 ├── data/mes4.db                 # Base SQLite locale (convertie depuis le dump)
 ├── docker-compose.yml           # MariaDB + Adminer + Flask
+├── Dockerfile                   # Image Docker de l'application Flask
+├── .env.example                 # Modele de configuration (a copier en .env)
 └── FestoMES-2026-03-31.sql      # Dump HeidiSQL de la ligne FESTO
 ```
 
@@ -125,8 +286,36 @@ SAE-QLIO-SD/
 | `/export/excel` | Rapport KPI Excel |
 | `/export/pdf` | Rapport KPI PDF |
 
-## Tests
+## Resolution des problemes
+
+### "Can't connect to MySQL server"
+
+- **Methode SQLite :** verifier que `DATABASE_URL` dans `.env` commence par `sqlite:///`
+- **Methode Docker :** verifier que les conteneurs tournent (`docker compose ps`) et que `DATABASE_URL` utilise `@db:3306`
+
+### L'application boucle au demarrage (retries BDD)
+
+L'app tente 10 connexions espacees de 5 secondes. En methode Docker, MariaDB peut prendre 30-60 secondes pour s'initialiser au premier lancement (import du dump SQL). Patienter.
+
+### Erreur "Access denied for user"
+
+Supprimer les volumes Docker et relancer :
 
 ```bash
+docker compose down -v
+docker compose up --build
+```
+
+### weasyprint : erreur a l'export PDF
+
+Ce n'est pas bloquant : l'application exporte en HTML si weasyprint n'est pas fonctionnel.
+Pour activer le PDF natif sur Windows : installer GTK3 depuis https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+
+### Les tests echouent
+
+Les tests n'utilisent ni Docker ni MariaDB. Verifier que le venv est actif et que les dependances sont installees :
+
+```bash
+pip install -r requirements.txt
 python -m pytest tests/ -v
 ```
