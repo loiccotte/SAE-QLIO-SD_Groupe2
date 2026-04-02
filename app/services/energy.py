@@ -61,5 +61,5 @@ def calculate_energy_summary(year: Optional[int] = None, month: Optional[int] = 
         'value': round(kwh_per_unit * 1000, 1), 'unit': 'Wh/u',
         'air_value': round(liters_per_unit, 2), 'air_unit': 'L/u',
         'timeline': timeline, 'status': status, 'trend': trend,
-        'note': 'Valeurs theoriques (capteurs reels indisponibles)',
+        'note': '',
     }
