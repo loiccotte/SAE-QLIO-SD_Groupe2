@@ -14,7 +14,7 @@ PyMySQL==1.1.1                 # Connecteur Python pur pour MariaDB/MySQL
 python-dotenv==1.0.1           # Chargement des variables d'environnement (.env)
 
 # --- Traitement de donnees ---
-pandas==2.2.2                  # Manipulation de DataFrames (calcul KPIs)
+pandas==2.2.3                  # Manipulation de DataFrames (calcul KPIs)
 plotly==5.22.0                 # Graphiques interactifs (utilise cote client via CDN)
 
 # --- Export ---

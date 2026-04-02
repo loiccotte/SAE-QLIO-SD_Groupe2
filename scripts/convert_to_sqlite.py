@@ -141,7 +141,10 @@ def convert(dump_path: str, output_path: str) -> None:
     conn.execute("PRAGMA cache_size=100000")
 
     in_create = False
+    in_insert = False
     create_lines: list[str] = []
+    insert_lines: list[str] = []
+    insert_table = None
     current_table = None
     tables_created = 0
     rows_inserted = 0
@@ -158,6 +161,23 @@ def convert(dump_path: str, output_path: str) -> None:
             if stripped.startswith('LOCK TABLES') or stripped.startswith('UNLOCK TABLES'):
                 continue
 
+            # If we're accumulating a multi-line INSERT
+            if in_insert:
+                insert_lines.append(stripped)
+                if stripped.endswith(';'):
+                    full_sql = ' '.join(insert_lines)
+                    clean_sql = clean_insert(full_sql)
+                    try:
+                        conn.execute(clean_sql)
+                        rows = clean_sql.count('),(') + 1
+                        rows_inserted += rows
+                    except Exception as e:
+                        print(f"  [ERREUR] Insert {insert_table}: {e}")
+                        print(f"           SQL: {full_sql[:200]}...")
+                    in_insert = False
+                    insert_lines = []
+                continue
+
             # Detect DROP TABLE → track current table
             drop_match = re.match(r'DROP TABLE IF EXISTS `(\w+)`', stripped)
             if drop_match:
@@ -165,7 +185,7 @@ def convert(dump_path: str, output_path: str) -> None:
                 continue
 
             # Detect CREATE TABLE start
-            create_match = re.match(r'CREATE TABLE `(\w+)`', stripped)
+            create_match = re.match(r'CREATE TABLE(?:\s+IF NOT EXISTS)?\s+`(\w+)`', stripped)
             if create_match:
                 table_name = create_match.group(1)
                 if table_name in REQUIRED_TABLES:
@@ -193,20 +213,26 @@ def convert(dump_path: str, output_path: str) -> None:
                     create_lines = []
                 continue
 
-            # Process INSERT statements
+            # Process INSERT statements (may span multiple lines)
             insert_match = re.match(r'INSERT INTO `(\w+)`', stripped)
             if insert_match:
                 table_name = insert_match.group(1)
                 if table_name in REQUIRED_TABLES:
-                    clean_sql = clean_insert(stripped)
-                    try:
-                        conn.execute(clean_sql)
-                        # Count approximate rows
-                        rows = clean_sql.count('),(') + 1
-                        rows_inserted += rows
-                    except Exception as e:
-                        print(f"  [ERREUR] Insert {table_name}: {e}")
-                        print(f"           SQL: {stripped[:200]}...")
+                    if stripped.endswith(';'):
+                        # Single-line INSERT
+                        clean_sql = clean_insert(stripped)
+                        try:
+                            conn.execute(clean_sql)
+                            rows = clean_sql.count('),(') + 1
+                            rows_inserted += rows
+                        except Exception as e:
+                            print(f"  [ERREUR] Insert {table_name}: {e}")
+                            print(f"           SQL: {stripped[:200]}...")
+                    else:
+                        # Multi-line INSERT — start accumulating
+                        in_insert = True
+                        insert_lines = [stripped]
+                        insert_table = table_name
                 continue
 
     conn.commit()

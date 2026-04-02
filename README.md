@@ -8,7 +8,7 @@ Projet SAE BUT3 QLIO Science des Donnees.
 
 ## Prerequis
 
-- [Python 3.10+](https://www.python.org/downloads/) (cocher **"Add Python to PATH"** lors de l'installation)
+- [Python 3.10 a 3.13](https://www.python.org/downloads/) (cocher **"Add Python to PATH"** lors de l'installation — Python 3.14+ n'est pas supporte car certaines dependances comme pandas n'ont pas encore de wheel pre-compile)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (uniquement pour la methode Docker)
 
 ---
@@ -50,7 +50,17 @@ pip install -r requirements.txt
 > Si l'installation echoue, ce n'est **pas bloquant** : l'export PDF bascule automatiquement en HTML.
 > Pour activer le PDF natif : installer GTK3 depuis https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
 
-### Etape 4 — Configurer le fichier .env
+### Etape 4 — Convertir le dump SQL en base SQLite
+
+Le projet contient un dump MariaDB (`FestoMES-2026-03-31.sql`) qu'il faut convertir en base SQLite :
+
+```bash
+python scripts/convert_to_sqlite.py
+```
+
+Cela cree le fichier `data/mes4.db` utilise par l'application.
+
+### Etape 5 — Configurer le fichier .env
 
 Copier le fichier d'exemple :
 
@@ -73,7 +83,7 @@ FLASK_APP=app.run:app
 FLASK_DEBUG=1
 ```
 
-### Etape 5 — Lancer l'application
+### Etape 6 — Lancer l'application
 
 ```bash
 flask run
@@ -81,7 +91,7 @@ flask run
 
 L'application est accessible sur **http://localhost:5000**.
 
-### Etape 6 — Se connecter
+### Etape 7 — Se connecter
 
 Voir la section [Comptes](#comptes) ci-dessous.
 
