@@ -12,10 +12,12 @@ L'application est un dashboard web à usage interne. Elle permet à différents 
 ### Architecture
 
 ```
-Navigateur  →  Flask (routes.py)  →  services.py (calcul KPIs)  →  SQLAlchemy  →  MariaDB (MES4)
-                     ↓
-              templates Jinja2 + Tailwind CSS + Plotly.js
+Navigateur  →  Flask (routes/)  →  services/ (calcul KPIs)  →  SQLAlchemy  →  MariaDB ou SQLite
+                    ↓
+             templates Jinja2 + Tailwind CSS + Plotly.js + Leaflet.js
 ```
+
+> Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour le detail technique (Service Layer, Blueprints, etc.)
 
 ---
 
@@ -47,23 +49,35 @@ Un bouton de déconnexion est disponible dans le header sur toutes les pages aut
 
 ## Navigation
 
-La navigation repose sur deux niveaux :
+Le layout respecte le CDC (bandeau haut + bandeau gauche + contenu central) :
 
-1. **Header** : présent sur toutes les pages, avec le logo, le minuteur de rafraîchissement, le bouton d'export et la déconnexion.
-2. **Fil d'Ariane** : indique la position dans l'arborescence (Accueil > Catégorie).
+1. **Header (bandeau haut)** : logo, boutons rafraichir/exporter/config BDD, logout
+2. **Sidebar (bandeau gauche)** : navigation KPI color-codee, filtre temporel annee/mois, infos utilisateur
+3. **Fil d'Ariane** : position dans l'arborescence (Accueil > Page)
 
-La structure des pages est :
+### Structure des pages
 
 ```
-/login
-/dashboard          → Vue synthétique (5 cartes KPI)
-  /performance      → Détail Performance
-  /qualite          → Détail Qualité
-  /delai            → Détail Délai
-  /energie          → Détail Énergie
-  /stock            → Détail Stock
-/api/kpis           → Données JSON (usage API)
+/login              → Page de connexion (standalone)
+/dashboard          → Vue synthetique (5 cartes KPI)
+  /performance      → Detail Performance (OEE, utilisation, cadence, cycle)
+  /qualite          → Detail Qualite (non-conformite, detection)
+  /delai            → Detail Delai (lead time, attente buffer)
+  /energie          → Detail Energie (conso electrique, air comprime)
+  /stock            → Detail Stock (occupation buffers, variation)
+  /carte            → Plan interactif de la ligne FESTO (Leaflet.js)
+/config-bdd         → Configuration base de donnees + import drag & drop
+/api/kpis           → Donnees JSON (usage API)
+/api/donnees        → Liste des tables sources (JSON)
+/api/donnees/<table>→ Export CSV d'une table brute
 ```
+
+### Filtre temporel
+
+Un filtre annee/mois est present dans la sidebar sur toutes les pages KPI.
+Quand l'utilisateur selectionne une periode, tous les indicateurs de la page
+se recalculent sur cette plage. Le filtre est propage via query string
+(`?year=2024&month=10`) et passe a chaque fonction de calcul KPI.
 
 ---
 
@@ -90,12 +104,15 @@ Chaque carte affiche une couleur selon le statut : **vert** (normal), **orange**
 Quatre indicateurs relatifs à l'efficacité de la ligne :
 
 **OEE — Taux de Rendement Global**
-- Formule : Disponibilité × Performance × Qualité
-- Affiché sous forme de jauge circulaire avec décomposition des trois composantes
-- Sources : `tblmachinereport`, `tblfinstep`, `tblresourceoperation`, `tblfinorderpos`
+- Formule NF E60-182 : Disponibilite x Performance x Qualite
+- Disponibilite = temps Busy / duree cumulee des ordres de fabrication
+- Performance = (pieces x cycle ideal) / temps Busy
+- Qualite = pieces conformes / total pieces
+- Affiché sous forme de jauge circulaire avec decomposition des trois composantes
+- Sources : `tblmachinereport`, `tblfinstep`, `tblfinorder`, `tblfinorderpos`
 
 **Taux d'utilisation machine**
-- Ratio temps actif (Busy) / temps total par machine
+- Ratio temps AutomaticMode / temps session par machine
 - Graphique en barres horizontales — une barre par machine (IDs 1 à 8)
 - Source : `tblmachinereport`
 
@@ -142,13 +159,14 @@ Quatre indicateurs relatifs à l'efficacité de la ligne :
 
 ### Énergie — `/energie`
 
-**Consommation électrique théorique (Wh/unité)**
-- Basée sur les valeurs nominales de `tblresourceoperation` (ElectricEnergy)
-- Graphique en courbe par heure de production
+**Consommation electrique theorique (Wh/unite)**
+- Basee sur `tblfinstep.ElectricEnergyCalc` (valeurs theoriques par etape)
+- Conversion : mWs -> Wh (1 kWh = 3.6e9 mWs)
+- Graphique timeline par heure de production
 
-**Consommation air comprimé théorique (L/unité)**
-- Jauges circulaires pour la pression d'air
-- Source : `tblresourceoperation` (CompressedAir)
+**Consommation air comprime theorique (L/unite)**
+- Basee sur `tblfinstep.CompressedAirCalc`
+- Conversion : mNl -> L (1 L = 1000 mNl)
 
 > **Note importante :** Les valeurs de consommation réelle (`ElectricEnergyReal`, `CompressedAirReal`) sont à 0 dans la base de données. L'application affiche systématiquement les valeurs théoriques avec une mention explicite.
 
@@ -182,21 +200,46 @@ Génère un rapport PDF du dashboard courant. Nécessite `weasyprint` avec GTK3 
 
 ---
 
-## API JSON — `/api/kpis`
+## Carte de la ligne — `/carte`
 
-Endpoint protégé (`@login_required`) retournant les KPIs du dashboard au format JSON. Prévu pour une intégration future avec un client JavaScript ou une interface externe.
+Page interactive montrant le plan de la ligne FESTO CP Factory avec Leaflet.js.
 
-Exemple de réponse :
+- **Layout** : machines positionnees en boucle (topologie reelle 1→2→3→4→5→6→7→1 + branche 1→8)
+- **Couleurs** : vert (auto), bleu (busy), rouge (erreur), gris (off)
+- **Cercle interne** : proportionnel au taux d'utilisation
+- **Click** : detail du poste (utilisation, busy %) dans le panneau lateral
+- **Tableau** : recapitulatif de tous les postes avec etat et metriques
+- **Buffers** : barres de progression dans le panneau lateral
 
-```json
-{
-  "oee": {"value": 73.5, "availability": 82.1, "performance": 94.2, "quality": 95.0, "status": "warning"},
-  "non_conformity": {"value": 1.45, "status": "normal"},
-  "lead_time": {"value": 1.8, "status": "normal"},
-  "energy": {"value": 12.4, "unit": "Wh/u", "status": "normal"},
-  "buffer": {"value": 44.2, "status": "normal"}
-}
-```
+---
+
+## Configuration BDD — `/config-bdd`
+
+Page d'administration (role admin uniquement) permettant de :
+
+1. **Connecter a MariaDB** : saisie IP/port/user/pass, test de connexion, application
+2. **Importer un fichier SQL** : drag & drop de dumps HeidiSQL/mysqldump
+   - Nettoyage automatique des octets nuls
+   - Conversion MySQL→SQLite (types, ENGINE, CHARSET, INSERT multi-lignes)
+   - Switch d'engine immediat (pas besoin de redemarrer)
+3. **Revenir a la base locale** : retour au SQLite embarque
+
+---
+
+## API
+
+### `/api/kpis` — KPIs calcules (JSON)
+
+Endpoint protege retournant les KPIs du dashboard. Supporte le filtre temporel (`?year=2024&month=10`).
+
+### `/api/donnees` — Liste des tables (JSON)
+
+Retourne la liste des tables avec nombre de lignes et lien CSV.
+CDC point 4 : "acces aux donnees sources sous forme de lien URL".
+
+### `/api/donnees/<table>` — Export CSV
+
+Telecharge une table brute en CSV. Exemple : `/api/donnees/tblmachinereport`.
 
 ---
 
@@ -208,11 +251,12 @@ Page personnalisée (`templates/404.html`) affichée lorsqu'une URL inexistante 
 
 ## Sécurité
 
-- Toutes les routes (sauf `/login`) requièrent une session active
-- Les sessions Flask sont signées avec `SECRET_KEY`
-- Le contrôle d'accès aux exports est appliqué via un décorateur `@role_required`
-- La base de données est accédée en lecture seule (aucun `INSERT`, `UPDATE`, `DELETE` dans le code)
-- Les identifiants sont stockés dans le code source (pas en base) — acceptable pour un projet pédagogique
+- Mots de passe haches avec scrypt (`werkzeug.security.generate_password_hash`)
+- Toutes les routes (sauf `/login`) requierent une session active (`@login_required`)
+- Les sessions Flask sont signees avec `SECRET_KEY`
+- RBAC : 3 roles (admin, responsable, employe) via `@role_required`
+- API CSV : validation des noms de table contre `inspector.get_table_names()` (anti-injection)
+- En Docker, les imports ne modifient pas le `.env` (protection `/.dockerenv`)
 
 ---
 
