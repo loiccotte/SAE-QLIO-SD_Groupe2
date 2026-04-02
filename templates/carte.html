@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Carte Ligne - T'ELEFAN MES 4.0{% endblock %}
+
+{% block header_center %}
+<h1 class="text-xl font-bold tracking-widest uppercase text-zinc-900">Carte de la ligne</h1>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="border-t border-zinc-100 bg-zinc-50/50">
+    <div class="max-w-[1400px] mx-auto px-4 py-2 text-sm">
+        <a href="{{ url_for('main.dashboard') }}" class="text-zinc-400 hover:text-zinc-600 transition-colors">Accueil</a>
+        <span class="mx-1.5 text-zinc-400">&gt;</span>
+        <span class="font-medium text-zinc-900">Carte de la ligne</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<h2 class="text-lg font-semibold tracking-tight text-zinc-900 mb-6">Plan interactif - Ligne FESTO CP Factory</h2>
+
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <!-- Plan SVG -->
+    <div class="xl:col-span-2 bg-white rounded-2xl border border-zinc-200/50 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="h-1.5 bg-gradient-to-r from-perf via-qualite to-energie"></div>
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Layout de la ligne</h3>
+                <div class="flex gap-3 text-[10px]">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-green-500"></span> Auto</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Busy</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Erreur</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-zinc-300"></span> Off</span>
+                </div>
+            </div>
+            <div id="line-map" style="height: 500px; position: relative;"></div>
+        </div>
+    </div>
+
+    <!-- Detail poste selectionne -->
+    <div class="bg-white rounded-2xl border border-zinc-200/50 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div class="h-1.5 kpi-bar-stock"></div>
+        <div class="p-6">
+            <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">
+                Detail du poste
+            </h3>
+            <div id="station-detail">
+                <p class="text-sm text-zinc-400 text-center py-12">Cliquez sur un poste pour voir ses indicateurs</p>
+            </div>
+
+            <!-- Buffers -->
+            <div class="mt-6 pt-4 border-t border-zinc-100">
+                <h4 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Buffers</h4>
+                <div class="space-y-2">
+                    {% for b in buffers %}
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-zinc-600">{{ b.name }} <span class="text-zinc-400">(Res {{ b.resource_id }})</span></span>
+                        <div class="flex items-center gap-2">
+                            <div class="w-20 h-2 bg-zinc-100 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full {% if b.rate > 90 %}bg-red-500{% elif b.rate > 80 %}bg-amber-500{% else %}bg-green-500{% endif %}"
+                                     style="width: {{ b.rate }}%"></div>
+                            </div>
+                            <span class="font-mono text-zinc-500 w-16 text-right">{{ b.occupied }}/{{ b.capacity }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau recapitulatif -->
+<div class="mt-6 bg-white rounded-2xl border border-zinc-200/50 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div class="h-1.5 bg-zinc-300"></div>
+    <div class="p-6">
+        <h3 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-4">Indicateurs par poste</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-zinc-100">
+                        <th class="text-left py-2 px-3 text-xs font-semibold text-zinc-500 uppercase">Poste</th>
+                        <th class="text-center py-2 px-3 text-xs font-semibold text-zinc-500 uppercase">Etat</th>
+                        <th class="text-right py-2 px-3 text-xs font-semibold text-zinc-500 uppercase">Utilisation</th>
+                        <th class="text-right py-2 px-3 text-xs font-semibold text-zinc-500 uppercase">Busy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in machines %}
+                    <tr class="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                        <td class="py-2 px-3 font-medium text-zinc-900">Machine {{ m.id }}</td>
+                        <td class="py-2 px-3 text-center">
+                            {% if m.error %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700">Erreur</span>
+                            {% elif m.busy %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">Busy</span>
+                            {% elif m.auto %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">Auto</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-100 text-zinc-500">Off</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 px-3 text-right font-mono">{{ m.utilization }}%</td>
+                        <td class="py-2 px-3 text-right font-mono">{{ m.busy_pct }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet CSS/JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+(function(){
+    var machines = {{ machines | tojson }};
+
+    // Positions des postes sur le plan (layout FESTO CP Factory en boucle)
+    // Boucle principale: 1 → 2 → 3 → 4 → 5 → 1
+    // Branche: 1 → 6 → 7 → retour
+    // AGV (10) au centre, Robotino (9) entre branches
+    var positions = {
+        1:  {x: 200, y: 120, label: 'ASRS\n(Stockage)'},
+        2:  {x: 400, y: 60,  label: 'Cam\n(Vision)'},
+        3:  {x: 600, y: 60,  label: 'Mag\n(Magasin)'},
+        4:  {x: 700, y: 200, label: 'Press\n(Presse)'},
+        5:  {x: 600, y: 340, label: 'Drill\n(Percage)'},
+        6:  {x: 200, y: 340, label: 'Pick\n(Robot)'},
+        7:  {x: 400, y: 340, label: 'Sort\n(Tri)'},
+        8:  {x: 100, y: 200, label: 'Store\n(Stock 2)'},
+        9:  {x: 350, y: 200, label: 'Robotino'},
+        10: {x: 550, y: 200, label: 'AGV'},
+    };
+
+    // Connexions convoyeur (topologie)
+    var links = [
+        [1, 2], [2, 3], [3, 4], [4, 5], [5, 7], [7, 6], [6, 1],
+        [1, 8], [8, 1],
+    ];
+
+    // Creer la carte Leaflet avec CRS Simple (pas de fond geo)
+    var map = L.map('line-map', {
+        crs: L.CRS.Simple,
+        minZoom: -1,
+        maxZoom: 2,
+        zoomControl: true,
+        attributionControl: false,
+    });
+
+    var bounds = [[0, 0], [400, 800]];
+    map.fitBounds(bounds);
+
+    // Dessiner les connexions convoyeur
+    links.forEach(function(link) {
+        var from = positions[link[0]], to = positions[link[1]];
+        if (from && to) {
+            var latlngs = [[400-from.y, from.x], [400-to.y, to.x]];
+            L.polyline(latlngs, {
+                color: '#d4d4d8', weight: 3, opacity: 0.6,
+                dashArray: '8, 6'
+            }).addTo(map);
+        }
+    });
+
+    // Dictionnaire pour lookup rapide
+    var machineMap = {};
+    machines.forEach(function(m) { machineMap[m.id] = m; });
+
+    // Fonction couleur selon etat
+    function stateColor(m) {
+        if (m.error) return '#dc2626';
+        if (m.busy) return '#3b82f6';
+        if (m.auto) return '#16a34a';
+        return '#a1a1aa';
+    }
+
+    function stateLabel(m) {
+        if (m.error) return 'ERREUR';
+        if (m.busy) return 'BUSY';
+        if (m.auto) return 'AUTO';
+        return 'OFF';
+    }
+
+    // Placer les machines
+    Object.keys(positions).forEach(function(id) {
+        var pos = positions[id];
+        var m = machineMap[parseInt(id)];
+        if (!m) return;
+
+        var color = stateColor(m);
+        var radius = (id == '9' || id == '10') ? 22 : 28;
+
+        // Cercle machine
+        var circle = L.circleMarker([400-pos.y, pos.x], {
+            radius: radius,
+            fillColor: color,
+            fillOpacity: 0.2,
+            color: color,
+            weight: 3,
+            className: 'machine-marker'
+        }).addTo(map);
+
+        // Inner circle (utilisation)
+        var utilRadius = Math.max(4, radius * m.utilization / 100);
+        L.circleMarker([400-pos.y, pos.x], {
+            radius: utilRadius,
+            fillColor: color,
+            fillOpacity: 0.6,
+            color: 'transparent',
+            weight: 0,
+        }).addTo(map);
+
+        // Label
+        var labelLines = pos.label.split('\n');
+        var html = '<div style="text-align:center;line-height:1.2;pointer-events:none">'
+            + '<div style="font-size:11px;font-weight:700;color:#18181b">M' + id + '</div>'
+            + '<div style="font-size:8px;color:#71717a">' + labelLines[0] + '</div>'
+            + '<div style="font-size:10px;font-weight:600;color:'+color+'">' + m.utilization + '%</div>'
+            + '</div>';
+        L.marker([400-pos.y, pos.x], {
+            icon: L.divIcon({
+                html: html,
+                className: '',
+                iconSize: [70, 40],
+                iconAnchor: [35, -radius-2],
+            })
+        }).addTo(map);
+
+        // Click handler
+        circle.on('click', function() {
+            showDetail(m, pos.label.split('\n')[0]);
+        });
+    });
+
+    // Afficher le detail d'un poste
+    function showDetail(m, name) {
+        var color = stateColor(m);
+        var state = stateLabel(m);
+        var html = ''
+            + '<div class="text-center mb-4">'
+            + '  <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-2" style="background:'+color+'20;border:3px solid '+color+'">'
+            + '    <span class="text-xl font-bold" style="color:'+color+'">M'+m.id+'</span>'
+            + '  </div>'
+            + '  <p class="text-sm font-semibold text-zinc-900">' + name + '</p>'
+            + '  <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background:'+color+'20;color:'+color+'">' + state + '</span>'
+            + '</div>'
+            + '<div class="space-y-3">'
+            + '  <div>'
+            + '    <div class="flex justify-between text-xs mb-1"><span class="text-zinc-500">Utilisation (Auto)</span><span class="font-mono font-semibold">' + m.utilization + '%</span></div>'
+            + '    <div class="h-2 bg-zinc-100 rounded-full overflow-hidden"><div class="h-full rounded-full bg-green-500" style="width:'+m.utilization+'%"></div></div>'
+            + '  </div>'
+            + '  <div>'
+            + '    <div class="flex justify-between text-xs mb-1"><span class="text-zinc-500">Busy (Production)</span><span class="font-mono font-semibold">' + m.busy_pct + '%</span></div>'
+            + '    <div class="h-2 bg-zinc-100 rounded-full overflow-hidden"><div class="h-full rounded-full bg-blue-500" style="width:'+Math.min(m.busy_pct*10, 100)+'%"></div></div>'
+            + '  </div>'
+            + '</div>';
+        document.getElementById('station-detail').innerHTML = html;
+    }
+
+    // Afficher M1 par defaut
+    if (machineMap[1]) showDetail(machineMap[1], 'ASRS');
+})();
+</script>
+{% endblock %}

@@ -40,7 +40,7 @@
                 </p>
                 <p class="text-xs text-zinc-400">
                     {% if db_info.type == 'sqlite' %}
-                        Donnees historiques embarquees (10 126 evenements)
+                        Base SQLite importee
                     {% else %}
                         Base {{ db_info.get('db', 'MES4') }} - Connexion active
                     {% endif %}
@@ -279,7 +279,7 @@
             </div>
             <div class="flex gap-2">
                 <span class="text-zinc-400 font-mono shrink-0">6.</span>
-                <span>Apres connexion, <strong>redemarrez l'application</strong> pour que la nouvelle base soit active</span>
+                <span>La nouvelle base est <strong>active immediatement</strong> apres connexion ou import</span>
             </div>
         </div>
     </div>

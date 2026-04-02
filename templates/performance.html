@@ -45,13 +45,23 @@
                 <div class="h-3 bg-zinc-100 rounded-full overflow-hidden relative">
                     <div class="h-full rounded-full transition-all duration-500
                         {% if oee.value >= 85 %}bg-green-500{% elif oee.value >= 60 %}bg-amber-500{% else %}bg-red-500{% endif %}"
-                         style="width: {{ oee.value }}%"></div>
+                         style="width: {{ [oee.value, 1] | max }}%"></div>
                     <div class="absolute top-0 h-full w-0.5 bg-zinc-900" style="left: 85%"></div>
                 </div>
                 <div class="flex justify-end mt-0.5">
                     <span class="text-[9px] text-zinc-400" style="margin-right: calc(15% - 8px)">85%</span>
                 </div>
             </div>
+            <!-- Explication OEE faible -->
+            {% if oee.value < 1 and oee.availability < 5 %}
+            <div class="mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                <p class="text-[10px] text-amber-700">
+                    <b>OEE &asymp; 0%</b> : la disponibilite est tres faible ({{ oee.availability }}%) car les machines
+                    fonctionnent en sessions de TP courtes avec de longs intervalles.
+                    L'OEE = Dispo &times; Perf &times; Qualite = {{ oee.availability }}% &times; {{ oee.performance }}% &times; {{ oee.quality }}%.
+                </p>
+            </div>
+            {% endif %}
             <!-- Tendance -->
             <div class="flex items-center gap-2 mt-3">
                 {% if oee.value >= 85 %}

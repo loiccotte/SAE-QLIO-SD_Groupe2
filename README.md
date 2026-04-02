@@ -1,116 +1,132 @@
 # T'ELEFAN MES 4.0
 
-Tableau de bord industriel pour le pilotage d'une ligne de production semi-automatisee FESTO (12 machines, fabrication de smartphones).
+Tableau de bord industriel pour le pilotage d'une ligne de production semi-automatisee FESTO CP Factory.
 
-Projet SAE BUT3 Science des Donnees - Groupe 2.
+Projet SAE BUT3 QLIO Science des Donnees.
 
 ## Prerequis
 
-- [Python 3.10+](https://www.python.org/downloads/) — cocher "Add Python to PATH" lors de l'installation
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — pour la base de donnees MariaDB
+- [Python 3.10+](https://www.python.org/downloads/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (pour MariaDB)
 
 ## Lancement rapide
 
+```bash
+# Option 1 : Docker (MariaDB + app)
+docker compose up --build
+
+# Option 2 : Local (SQLite)
+pip install -r requirements.txt
+flask run
 ```
-Double-cliquer sur LANCER_APP.bat
-```
 
-Le script cree automatiquement le venv, installe les dependances, demarre la base de donnees Docker et ouvre le navigateur sur http://localhost:5000.
+L'application est accessible sur http://localhost:5000.
 
-> Documentation complete : [docs/INSTALLATION_VENV.md](docs/INSTALLATION_VENV.md)
+## Comptes
 
-## Acces
+| Identifiant | Mot de passe | Role | Droits |
+|-------------|-------------|------|--------|
+| admin | admin123 | admin | Dashboard, export, config BDD |
+| responsable | resp123 | responsable | Dashboard, export |
+| operateur | oper123 | employe | Dashboard uniquement |
 
-| Service | URL | Identifiants |
-|---------|-----|-------------|
-| Application Flask | http://localhost:5000 | Voir comptes ci-dessous |
-| phpMyAdmin | http://localhost:8080 | example_user / example_password |
+Les mots de passe sont haches avec scrypt (werkzeug.security).
 
-### Comptes de test
-
-| Identifiant | Mot de passe | Role | Acces export |
-|-------------|-------------|------|-------------|
-| admin | admin123 | admin | Oui |
-| responsable | resp123 | responsable | Oui |
-| operateur | oper123 | employe | Non |
-
-## Architecture technique
+## Architecture
 
 ```
 SAE-QLIO-SD/
 ├── app/
-│   ├── __init__.py          # Flask factory, config, retry BDD, handler 404
-│   ├── models.py            # 10 modeles SQLAlchemy (tables MES4)
-│   ├── services.py          # 11 fonctions de calcul KPI + helpers
-│   ├── routes.py            # 8 routes (dashboard, 5 detail, API, index)
-│   ├── auth.py              # Auth hardcodee, login_required, role_required
-│   └── export.py            # Export PDF et Excel des KPIs
+│   ├── __init__.py              # Factory Flask, init BDD, gestion erreurs
+│   ├── auth.py                  # Login/logout, RBAC, hachage mots de passe
+│   ├── config.py                # Seuils, IDs machines, constantes
+│   ├── models.py                # 10 modeles ORM (tables MES4)
+│   ├── export.py                # Export PDF et Excel
+│   ├── routes/
+│   │   ├── dashboard.py         # Dashboard, API JSON, acces donnees CSV
+│   │   ├── kpi_pages.py         # Pages detail (perf, qualite, delai, ...)
+│   │   └── admin.py             # Config BDD, import SQL, conversion MySQL->SQLite
+│   └── services/
+│       ├── _helpers.py          # Decorateur safe_kpi, filtre temporel, durees machines
+│       ├── performance.py       # OEE, utilisation, cadence, temps de cycle
+│       ├── quality.py           # Non-conformite, temps de detection
+│       ├── delay.py             # Lead time, temps d'attente buffer
+│       ├── energy.py            # Consommation electrique et air comprime
+│       └── stock.py             # Occupation buffers, variation stock
 ├── templates/
-│   ├── base.html            # Layout commun (header, timer, export, breadcrumbs)
-│   ├── login.html           # Page de connexion (standalone)
-│   ├── dashboard.html       # Dashboard global (5 cards KPI cliquables)
-│   ├── performance.html     # Detail Performance (OEE, utilisation, cadence, cycle)
-│   ├── qualite.html         # Detail Qualite (non-conformite, detection)
-│   ├── delai.html           # Detail Delai (lead time scatter, buffer wait)
-│   ├── energie.html         # Detail Energie (consommation timeline, air gauge)
-│   ├── stock.html           # Detail Stock (occupation buffers, variation)
-│   └── 404.html             # Page d'erreur personnalisee (standalone)
-├── static/css/custom.css    # Couleurs KPI, animations, responsive Plotly
-├── docs/
-│   ├── INSTALLATION_VENV.md # Documentation technique environnement
-│   ├── FONCTIONNALITES.md   # Documentation fonctionnalites WebApp
-│   └── ANALYTIQUE.md        # Documentation analytique KPIs
-├── tests/
-│   ├── conftest.py          # Fixtures (app test SQLite, seed data, clients)
-│   ├── test_services.py     # Tests unitaires des 11 fonctions KPI
-│   ├── test_routes.py       # Tests fonctionnels (protection, rendu, RBAC export)
-│   └── test_auth.py         # Tests auth (login, logout, roles)
-├── ressources/              # SQL init, maquettes, CDC, schema BDD
-├── LANCER_APP.bat           # Script de lancement Windows (double-clic)
-├── docker-compose.yml       # 3 services : MariaDB + phpMyAdmin + Flask
-├── Dockerfile               # Python 3.10-slim
-├── requirements.txt         # Dependances Python avec versions
-└── .env.example             # Variables d'environnement (modele)
+│   ├── base.html                # Layout : header, sidebar, auto-refresh 5min
+│   ├── components/
+│   │   ├── sidebar.html         # Navigation KPI + filtre temporel + user
+│   │   └── time_filter.html     # Filtres annee/mois (sidebar)
+│   ├── login.html, 404.html     # Pages standalone
+│   ├── dashboard.html           # 5 cartes KPI cliquables
+│   ├── performance.html         # OEE gauge, utilisation par machine/mois
+│   ├── qualite.html             # Non-conformite, detection defauts
+│   ├── delai.html               # Lead time, attente buffer
+│   ├── energie.html             # Timeline conso, jauges air comprime
+│   ├── stock.html               # Jauges buffers, variation stock
+│   ├── carte.html               # Plan interactif ligne FESTO (Leaflet)
+│   └── config_bdd.html          # Config BDD, drag & drop import SQL
+├── scripts/
+│   └── sanitize-sql.sh          # Nettoyage octets nuls avant import MariaDB
+├── tests/                       # 61 tests (pytest)
+├── data/mes4.db                 # Base SQLite locale (convertie depuis le dump)
+├── docker-compose.yml           # MariaDB + Adminer + Flask
+└── FestoMES-2026-03-31.sql      # Dump HeidiSQL de la ligne FESTO
 ```
 
-## KPIs implementes (12)
+## Conformite Cahier des Charges
 
-| # | KPI | Methode de calcul | Source |
-|---|-----|-------------------|--------|
-| 1 | OEE (Taux de Rendement Global) | Disponibilite x Performance x Qualite | tblmachinereport, tblfinstep, tblfinorderpos |
-| 2 | Taux d'utilisation machine | Busy / Total par machine | tblmachinereport |
-| 3 | Cadence reelle | Pieces finies / duree production | tblfinorderpos |
-| 4 | Temps moyen de cycle | AVG(End - Start) etapes productives | tblfinstep |
-| 5 | Taux de non-conformite | Pieces erreur / total | tblfinorderpos, tblpartsreport |
-| 6 | Temps de detection defaut | Delta erreur -> arret machine | tblmachinereport |
-| 7 | Lead Time | End - Start par ordre | tblfinorder |
-| 8 | Temps d'attente en buffer | AVG(End - Start) OpNo 210-215 | tblfinstep |
-| 9-10 | Consommation energetique | Valeurs theoriques (ElectricEnergy, CompressedAir) | tblresourceoperation |
-| 11 | Taux d'occupation buffers | Positions occupees / capacite | tblbuffer, tblbufferpos |
-| 12 | Variation niveau de stock | Delta Quantity par buffer | tblbufferpos |
+| Exigence CDC | Status | Implementation |
+|---|---|---|
+| 1. Login avec mot de passe hache | OK | `auth.py` : scrypt via werkzeug |
+| 2. Deconnexion + bouton logout | OK | Sidebar + bouton mobile |
+| 3. Page 404 personnalisee | OK | `templates/404.html` |
+| 4. Acces donnees sources via URL | OK | `/api/donnees` (liste) + `/api/donnees/<table>` (CSV) |
+| 5. Minimum 5 pages web | OK | 8 pages : dashboard, performance, qualite, delai, energie, stock, carte, config |
+| 6. Carte geographique avec indicateurs | OK | `carte.html` : plan Leaflet de la ligne FESTO |
+| 7. Filtre plage de temps sur chaque page | OK | Sidebar : annee/mois, filtre toutes les pages KPI |
+| Bandeau gauche (sidebar) | OK | Navigation KPI, filtres, infos utilisateur |
+| Bandeau haut (header) | OK | Logo, refresh, export, config BDD, logout |
+| Tableau de bord central | OK | Cartes KPI cliquables + graphiques Plotly |
+
+## KPIs (12 indicateurs)
+
+| # | Indicateur | Formule | Source BDD |
+|---|---|---|---|
+| 1 | OEE | Dispo x Perf x Qualite (NF E60-182) | tblmachinereport, tblfinstep, tblfinorderpos, tblfinorder |
+| 2 | Utilisation machine | AutomaticMode / temps session | tblmachinereport |
+| 3 | Cadence | Pieces / heures Busy | tblfinorderpos, tblmachinereport |
+| 4 | Temps de cycle | AVG(End-Start) etapes prod | tblfinstep (OpNo < 200) |
+| 5 | Non-conformite | Erreurs / total | tblfinorderpos, tblpartsreport |
+| 6 | Detection defaut | Delta erreur -> arret | tblmachinereport (fronts ErrorL0/L2) |
+| 7 | Lead Time | AVG(End-Start) par OF | tblfinorder |
+| 8 | Attente buffer | AVG(End-Start) OpNo 210-215 | tblfinstep |
+| 9 | Energie electrique | ElectricEnergyCalc / piece | tblfinstep (mWs -> Wh) |
+| 10 | Air comprime | CompressedAirCalc / piece | tblfinstep (mNl -> L) |
+| 11 | Occupation buffers | Positions PNo>0 / capacite | tblbuffer, tblbufferpos |
+| 12 | Variation stock | Delta quantites par buffer | tblbufferpos |
 
 ## Stack technique
 
-- **Backend :** Flask 3.x + SQLAlchemy + Jinja2
-- **Frontend :** Tailwind CSS (CDN) + Plotly.js (CDN) + police Geist
-- **Base de donnees :** MariaDB 10.6 (schema MES4, 64 tables, lecture seule)
-- **Infrastructure :** Docker Compose (base de donnees) + Python venv (application)
+- **Backend :** Flask 3.x, SQLAlchemy, Jinja2
+- **Frontend :** Tailwind CSS (CDN), Plotly.js, Leaflet.js, police Outfit
+- **BDD :** MariaDB 10.6 (Docker) / SQLite (local, import drag & drop)
+- **Tests :** pytest (61 tests, SQLite in-memory)
 - **Export :** openpyxl (Excel), weasyprint (PDF)
-- **Tests :** pytest + pytest-flask
 
-## Lancement des tests
+## API
 
-Les tests utilisent SQLite en memoire — Docker n'est pas necessaire.
+| Endpoint | Description |
+|---|---|
+| `/api/kpis` | KPIs calcules (JSON) |
+| `/api/donnees` | Liste des tables avec lien CSV |
+| `/api/donnees/<table>` | Export CSV d'une table brute |
+| `/export/excel` | Rapport KPI Excel |
+| `/export/pdf` | Rapport KPI PDF |
+
+## Tests
 
 ```bash
-.venv\Scripts\activate
-pytest tests/ -v
+python -m pytest tests/ -v
 ```
-
-## Problemes connus et limitations
-
-1. Les donnees energetiques reelles sont a 0 dans la BDD (ElectricEnergyReal, CompressedAirReal) - valeurs theoriques utilisees en fallback
-2. Les codes erreur 5050 et 99 dans tblpartsreport ne sont pas references dans tblerrorcodes
-3. Les donnees couvrent 2016-2025 (sessions de test) - toutes les periodes sont agregees
-4. L'export PDF utilise weasyprint ; en cas d'erreur d'installation, un fallback HTML est genere
-5. Les comptes utilisateurs sont hardcodes (pas de table BDD)

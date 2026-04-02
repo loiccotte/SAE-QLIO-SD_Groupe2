@@ -19,34 +19,35 @@ Hierarchie des roles
 | employe       |      1 | Dashboard, detail uniquement                   |
 +---------------+--------+-----------------------------------------------+
 
-Note : les mots de passe sont stockes en clair dans ``USERS`` car il
-s'agit d'une version beta / academique. En production, il faudrait
-utiliser une table BDD avec hachage bcrypt/argon2.
+Les mots de passe sont haches via werkzeug.security (scrypt).
+En production, on migrerait vers une table BDD avec gestion
+des comptes dynamique.
 """
 
 from functools import wraps
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 
 bp = Blueprint('auth', __name__)
 
 # ---------------------------------------------------------------------------
-# Utilisateurs hardcodes (beta)
-# A remplacer par une table BDD avec hachage de mots de passe en production
+# Utilisateurs hardcodes avec mots de passe haches (scrypt via werkzeug)
+# En production : migrer vers une table BDD avec gestion de comptes
 # ---------------------------------------------------------------------------
 USERS: dict[str, dict] = {
     'admin': {
-        'password': 'admin123',
+        'password': generate_password_hash('admin123'),
         'role': 'admin',
         'name': 'Administrateur',
     },
     'responsable': {
-        'password': 'resp123',
+        'password': generate_password_hash('resp123'),
         'role': 'responsable',
         'name': 'Responsable Production',
     },
     'operateur': {
-        'password': 'oper123',
+        'password': generate_password_hash('oper123'),
         'role': 'employe',
         'name': 'Operateur',
     },
@@ -119,7 +120,7 @@ def login():
         password = request.form.get('mot_de_passe', '')
 
         user = USERS.get(username)
-        if user and user['password'] == password:
+        if user and check_password_hash(user['password'], password):
             session['user'] = username
             session['role'] = user['role']
             session['name'] = user['name']

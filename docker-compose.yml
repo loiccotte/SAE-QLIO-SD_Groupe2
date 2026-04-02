@@ -4,25 +4,26 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: MES4
+      MYSQL_DATABASE: mes4
       MYSQL_USER: example_user
       MYSQL_PASSWORD: example_password
     ports:
       - "3306:3306"
     volumes:
-      - ./ressources/FestoMES-2025-03-27.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts/sanitize-sql.sh:/docker-entrypoint-initdb.d/00-sanitize.sh
+      - ./FestoMES-2026-03-31.sql:/docker-entrypoint-initdb.d/init.sql
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 5s
-      timeout: 5s
+      interval: 10s
+      timeout: 10s
       retries: 30
-      start_period: 10s
+      start_period: 60s
 
   adminer:
     image: adminer:4
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
       ADMINER_DEFAULT_SERVER: db
     depends_on:

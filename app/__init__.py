@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Constantes de configuration
 # ---------------------------------------------------------------------------
-DB_CONNECT_RETRIES = 5          # Nombre de tentatives de connexion BDD
-DB_CONNECT_DELAY_SEC = 3        # Delai entre chaque tentative (secondes)
+DB_CONNECT_RETRIES = 10         # Nombre de tentatives de connexion BDD
+DB_CONNECT_DELAY_SEC = 5        # Delai entre chaque tentative (secondes)
 
 
 def create_app() -> Flask:
@@ -73,9 +73,10 @@ def create_app() -> Flask:
 
     # Enregistrement des blueprints
     with app.app_context():
-        from . import auth, export, routes
+        from . import auth, export
+        from .routes import bp as main_bp
 
-        app.register_blueprint(routes.bp)
+        app.register_blueprint(main_bp)
         app.register_blueprint(auth.bp)
         app.register_blueprint(export.bp)
 

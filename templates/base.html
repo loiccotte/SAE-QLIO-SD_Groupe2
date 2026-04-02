@@ -194,10 +194,15 @@
     {% endif %}
     {% endwith %}
 
-    <!-- CONTENU PRINCIPAL -->
-    <main class="max-w-[1400px] mx-auto px-4 py-6">
-        {% block content %}{% endblock %}
-    </main>
+    <!-- LAYOUT : sidebar gauche + contenu principal -->
+    <div class="flex">
+        {% include 'components/sidebar.html' %}
+
+        <!-- CONTENU PRINCIPAL -->
+        <main class="flex-1 min-w-0 max-w-[1400px] mx-auto px-4 py-6">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 
     <!-- AUTO-REFRESH : compteur 5 minutes -->
     <script>
@@ -272,8 +277,8 @@
 
     {% block scripts %}{% endblock %}
 
-    <!-- LOGOUT fixé en bas à droite -->
-    <div class="fixed bottom-6 right-6 z-50">
+    <!-- Logout mobile (visible uniquement en dessous de lg) -->
+    <div class="lg:hidden fixed bottom-6 right-6 z-50">
         <a href="{{ url_for('auth.logout') }}"
            class="px-5 py-2 text-xs font-semibold uppercase tracking-wide
                   bg-white border border-zinc-300 rounded-lg shadow-md

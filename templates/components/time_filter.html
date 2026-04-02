@@ -1,0 +1,62 @@
+<!-- Filtre plage temporelle -->
+<div class="p-4">
+    <p class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-2">Periode</p>
+    <form method="GET" id="time-filter-form">
+        <div class="space-y-2">
+            <select name="year" id="filter-year"
+                    class="w-full text-xs border border-zinc-200 rounded-lg px-2 py-1.5 bg-zinc-50
+                           focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none">
+                <option value="">Toutes les annees</option>
+            </select>
+            <select name="month" id="filter-month"
+                    class="w-full text-xs border border-zinc-200 rounded-lg px-2 py-1.5 bg-zinc-50
+                           focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 outline-none">
+                <option value="">Tous les mois</option>
+                <option value="1">Janvier</option>
+                <option value="2">Fevrier</option>
+                <option value="3">Mars</option>
+                <option value="4">Avril</option>
+                <option value="5">Mai</option>
+                <option value="6">Juin</option>
+                <option value="7">Juillet</option>
+                <option value="8">Aout</option>
+                <option value="9">Septembre</option>
+                <option value="10">Octobre</option>
+                <option value="11">Novembre</option>
+                <option value="12">Decembre</option>
+            </select>
+            <button type="submit"
+                    class="w-full py-1.5 text-xs font-semibold uppercase tracking-wide
+                           bg-zinc-900 text-white hover:bg-zinc-800 rounded-lg
+                           transition-colors active:scale-[0.98]">
+                Filtrer
+            </button>
+            <button type="button" onclick="clearFilters()"
+                    class="w-full py-1.5 text-xs font-medium text-zinc-500
+                           hover:text-zinc-700 transition-colors">
+                Reinitialiser
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function(){
+    var yearSel = document.getElementById('filter-year');
+    if (yearSel) {
+        var curYear = new Date().getFullYear();
+        for (var y = curYear; y >= curYear - 5; y--) {
+            var opt = document.createElement('option');
+            opt.value = y; opt.textContent = y;
+            yearSel.appendChild(opt);
+        }
+        // Restaurer la valeur depuis l'URL
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('year')) yearSel.value = params.get('year');
+        if (params.get('month')) document.getElementById('filter-month').value = params.get('month');
+    }
+})();
+function clearFilters() {
+    window.location.href = window.location.pathname;
+}
+</script>
