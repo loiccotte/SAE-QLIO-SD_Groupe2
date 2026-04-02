@@ -22,7 +22,7 @@ Aucune installation de Docker n'est necessaire.
 
 ```bash
 git clone <url-du-depot>
-cd SAE-QLIO-SD
+cd SAE-QLIO-SD_Groupe2
 ```
 
 ### Etape 2 — Creer et activer l'environnement virtuel
