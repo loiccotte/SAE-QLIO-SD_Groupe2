@@ -15,7 +15,7 @@
 │   Python venv          Docker Desktop                    │
 │  ┌───────────┐        ┌──────────────────────────────┐  │
 │  │ Flask app │──────► │ MariaDB :3306  (conteneur db) │  │
-│  │ port 5000 │        │ phpMyAdmin :8080              │  │
+│  │ port 5000 │        │ Adminer :8081              │  │
 │  └───────────┘        └──────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -64,7 +64,7 @@ Le script automatise toutes les étapes :
 | 4 | Installe les dépendances pip |
 | 5 | Crée le fichier `.env` depuis `.env.example` |
 | 6 | Vérifie que Docker Desktop est démarré |
-| 7 | Lance les conteneurs MariaDB + phpMyAdmin |
+| 7 | Lance les conteneurs MariaDB + Adminer |
 | 8 | Attend que la base de données soit prête |
 | 9 | Ouvre le navigateur sur http://localhost:5000 |
 | 10 | Lance Flask |
@@ -126,7 +126,7 @@ copy .env.example .env
 Le fichier `.env` créé contient déjà les bonnes valeurs pour Docker :
 
 ```env
-DATABASE_URL=mysql+pymysql://example_user:example_password@localhost:3306/MES4
+DATABASE_URL=mysql+pymysql://example_user:example_password@localhost:3306/mes4
 SECRET_KEY=exemple-secret-key-2025
 FLASK_APP=app.run:app
 FLASK_DEBUG=1
@@ -137,13 +137,13 @@ FLASK_DEBUG=1
 ### Étape 5 — Démarrer la base de données (Docker)
 
 ```cmd
-docker compose up -d db phpmyadmin
+docker compose up -d db adminer
 ```
 
 Cette commande :
 - démarre un conteneur MariaDB sur le port `3306`
-- démarre un conteneur phpMyAdmin sur le port `8080`
-- **importe automatiquement** le fichier `ressources/FestoMES-2025-03-27.sql` (64 tables)
+- démarre un conteneur Adminer sur le port `8080`
+- **importe automatiquement** le fichier `FestoMES-2026-03-31.sql` (64 tables)
 
 Attendre que la base soit prête (~30 secondes) :
 
@@ -162,7 +162,7 @@ flask run
 ```
 
 L'application est accessible sur : **http://localhost:5000**
-phpMyAdmin est accessible sur : **http://localhost:8080**
+Adminer est accessible sur : **http://localhost:8081**
 
 ---
 
@@ -234,7 +234,7 @@ Résultat attendu : tous les tests passent au vert.
 
 ### Page blanche ou erreur SQLAlchemy au démarrage
 
-- Vérifier que l'import SQL s'est bien effectué : ouvrir http://localhost:8080 et vérifier que la base `MES4` contient 64 tables
+- Vérifier que l'import SQL s'est bien effectué : ouvrir http://localhost:8081 et vérifier que la base `MES4` contient 64 tables
 - Vérifier `FLASK_DEBUG=1` dans `.env` pour voir les erreurs détaillées
 
 ### weasyprint : erreur à l'export PDF

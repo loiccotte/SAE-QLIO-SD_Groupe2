@@ -145,14 +145,12 @@ dist\TelefanMES\TelefanMES.exe
 
 Le script `scripts/convert_to_sqlite.py` :
 
-- Lit le dump SQL `ressources/FestoMES-2025-03-27.sql`
-- Extrait les 10 tables utilisees par l'ORM
-- Convertit la syntaxe MySQL vers SQLite (types, echappement, mots-cles)
-- Produit `data/mes4.db` (~1.2 Mo)
+- Lit le dump SQL `FestoMES-2026-03-31.sql` (HeidiSQL / MariaDB)
+- Nettoie les octets nuls et les commandes MySQL incompatibles
+- Convertit la syntaxe MySQL vers SQLite (types, ENGINE, CHARSET, INSERT multi-lignes)
+- Produit `data/mes4.db` (~2.2 Mo, 61 tables)
 
-Tables incluses : `tblfinorder`, `tblfinorderpos`, `tblfinstep`, `tblmachinereport`, `tblresourceoperation`, `tblresource`, `tblpartsreport`, `tblbuffer`, `tblbufferpos`, `tblerrorcodes`
-
-> **Note :** Les tables MySQL ont plus de colonnes que les modeles ORM (ex: `tblresource` a 15 colonnes MySQL mais 3 dans l'ORM). Les colonnes supplementaires sont conservees dans SQLite mais ignorees par SQLAlchemy a la lecture.
+> **Note :** Les tables MySQL ont plus de colonnes que les modeles ORM. Les colonnes supplementaires sont conservees dans SQLite mais ignorees par SQLAlchemy a la lecture.
 
 ---
 

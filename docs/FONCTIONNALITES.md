@@ -267,7 +267,7 @@ Page personnalisée (`templates/404.html`) affichée lorsqu'une URL inexistante 
 | Backend | Flask 3.0.3 + SQLAlchemy + Jinja2 |
 | Base de données | MariaDB 10.6 (64 tables, schéma MES4) |
 | Driver BDD | PyMySQL 1.1.1 (pure Python) |
-| Frontend | Tailwind CSS (CDN) + Plotly.js (CDN) + police Geist |
+| Frontend | Tailwind CSS (CDN) + Plotly.js (CDN) + Leaflet.js + police Outfit |
 | Calcul KPIs | Pandas 2.2.2 |
 | Export Excel | openpyxl 3.1.3 |
 | Export PDF | weasyprint 62.3 |

@@ -222,7 +222,7 @@ def convert(dump_path: str, output_path: str) -> None:
 
 if __name__ == '__main__':
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    dump = os.path.join(project_root, 'ressources', 'FestoMES-2025-03-27.sql')
+    dump = os.path.join(project_root, 'FestoMES-2026-03-31.sql')
     output = os.path.join(project_root, 'data', 'mes4.db')
 
     if len(sys.argv) > 1:

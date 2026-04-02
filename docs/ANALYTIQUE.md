@@ -19,20 +19,20 @@ La ligne T'ELEFAN est une ligne de production pédagogique FESTO de type MES 4.0
 
 ### Données disponibles
 
-La base MES4 contient 64 tables. Les 10 tables utilisées dans ce projet sont :
+La base MES4 contient 61 tables. Les 8 tables principales utilisees par les KPIs sont :
 
-| Table | Volume | Contenu |
-|-------|--------|---------|
-| `tblfinorder` | 189 lignes | Ordres de fabrication |
-| `tblfinorderpos` | 411 lignes | Pièces produites par ordre |
-| `tblfinstep` | 1 460 lignes | Étapes d'opération par pièce |
-| `tblmachinereport` | 10 126 lignes | États machine horodatés |
-| `tblresourceoperation` | 142 lignes | Temps nominaux et énergie par opération |
-| `tblresource` | 12 lignes | Référentiel machines |
-| `tblpartsreport` | 1 191 lignes | Détections capteurs et codes erreur |
-| `tblbuffer` | 10 lignes | Zones de stockage |
+| Table | Volume (dump 2026-03-31) | Contenu |
+|-------|--------------------------|---------|
+| `tblfinorder` | 219 lignes | Ordres de fabrication (OF) |
+| `tblfinorderpos` | 445 lignes | Pieces produites par OF |
+| `tblfinstep` | 1 669 lignes | Etapes d'operation (duree, energie, erreur) |
+| `tblmachinereport` | 13 182 lignes | Etats machine horodates (event-driven) |
+| `tblpartsreport` | ~700 lignes | Detections capteurs et codes erreur |
+| `tblbuffer` | 10 lignes | Zones de stockage (ASRS, buffers) |
 | `tblbufferpos` | 77 lignes | Positions individuelles dans les buffers |
-| `tblerrorcodes` | 4 lignes | Référentiel codes erreur |
+| `tblerrorcodes` | 4 lignes | Referentiel codes erreur |
+
+> **Note :** Les tables `tblresourceoperation` et `tblresource` ne sont pas presentes dans le dump actuel. L'OEE et l'energie utilisent directement les donnees de `tblfinstep` et `tblfinorder`.
 
 ---
 
@@ -61,7 +61,7 @@ Le cahier des charges demande de couvrir la performance globale d'une ligne de p
 OEE = Disponibilité × Performance × Qualité
 ```
 - Disponibilité = temps Busy / temps total (`tblmachinereport`)
-- Performance = temps nominal / temps réel (`tblfinstep` × `tblresourceoperation`)
+- Performance = (pieces x cycle ideal) / temps Busy (`tblfinstep`, `tblfinorderpos`)
 - Qualité = pièces OK / total pièces (`tblfinorderpos`)
 
 **Pertinence :** L'OEE est le KPI le plus utilisé en industrie manufacturière (norme ISO 22400). Une valeur < 60 % signale une ligne sous-performante. Il synthétise en un chiffre les pertes liées aux arrêts, aux ralentissements et aux rebuts.
@@ -100,7 +100,7 @@ OEE = Disponibilité × Performance × Qualité
 
 **Formule :** Moyenne des durées (End - Start) pour OpNo < 200 et ErrorStep = 0
 
-**Pertinence :** Le temps de cycle est la base du calcul de capacité d'une ligne. S'il dépasse le temps nominal (`tblresourceoperation.WorkingTime`), cela indique une dégradation des équipements ou un problème de réglage.
+**Pertinence :** Le temps de cycle est la base du calcul de capacite d'une ligne. Un temps de cycle eleve indique une degradation des equipements ou un probleme de reglage.
 
 **Observations :** Le temps de cycle moyen observé est cohérent avec les temps nominaux de la ligne FESTO. Les valeurs aberrantes (> 1 heure) sont filtrées car elles correspondent à des pauses ou redémarrages de session.
 
@@ -159,7 +159,7 @@ Taux = (Erreurs ordres + Erreurs capteurs) / (Total ordres + Total capteurs) × 
 
 **Pertinence :** L'énergie représente un coût direct et un enjeu environnemental. Mesurer la consommation par unité permet de détecter des dérives (machine mal réglée, fuites d'air) et de définir des objectifs de réduction.
 
-**Limite identifiée :** Les capteurs réels de la ligne T'ELEFAN ne remontent pas de données dans la base (`ElectricEnergyReal` et `CompressedAirReal` sont à 0 pour toutes les lignes). Ce KPI utilise donc les **valeurs théoriques** de la table `tblresourceoperation`, ce qui donne une estimation de référence mais pas une mesure réelle. Cela est indiqué explicitement dans l'interface.
+**Limite identifiee :** Les capteurs reels ne remontent pas de donnees (`ElectricEnergyReal` et `CompressedAirReal` sont a 0). Ce KPI utilise les **valeurs theoriques** de `tblfinstep.ElectricEnergyCalc` et `CompressedAirCalc`, ce qui donne une estimation de reference. Cela est indique explicitement dans l'interface.
 
 ---
 
