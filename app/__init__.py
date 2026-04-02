@@ -55,6 +55,19 @@ def create_app() -> Flask:
     )
 
     db_uri = os.getenv('DATABASE_URL', '')
+
+    # Resoudre le chemin SQLite en absolu par rapport a la racine du projet
+    if db_uri.startswith('sqlite:///') and not os.path.isabs(db_uri[len('sqlite:///'):]):
+        rel_path = db_uri[len('sqlite:///'):]
+        abs_path = os.path.join(base_path, rel_path)
+        db_uri = f'sqlite:///{abs_path}'
+
+    # Auto-import du fichier SQL par defaut si la base SQLite n'existe pas
+    if db_uri.startswith('sqlite:///'):
+        db_file = db_uri[len('sqlite:///'):]
+        if not os.path.exists(db_file) or os.path.getsize(db_file) == 0:
+            _auto_import_default_sql(base_path, db_file)
+
     app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-prod')
@@ -86,6 +99,34 @@ def create_app() -> Flask:
         return render_template('404.html'), 404
 
     return app
+
+
+DEFAULT_SQL_FILE = 'FestoMES-2026-03-31.sql'
+
+
+def _auto_import_default_sql(base_path: str, db_file: str) -> None:
+    """Importe automatiquement le fichier SQL par defaut si la base n'existe pas.
+
+    Reutilise le convertisseur MySQL->SQLite de admin.py pour creer la base
+    a partir du dump SQL fourni a la racine du projet.
+    """
+    sql_path = os.path.join(base_path, DEFAULT_SQL_FILE)
+    if not os.path.exists(sql_path):
+        logger.warning(
+            "Fichier SQL par defaut introuvable : %s — demarrage sans donnees.",
+            sql_path,
+        )
+        return
+
+    os.makedirs(os.path.dirname(db_file), exist_ok=True)
+    logger.info("Base SQLite absente — import automatique de %s ...", DEFAULT_SQL_FILE)
+
+    from .routes.admin import _convert_mysql_to_sqlite
+    try:
+        _convert_mysql_to_sqlite(sql_path, db_file)
+        logger.info("Import automatique termine : %s", db_file)
+    except Exception as exc:
+        logger.error("Echec de l'import automatique : %s", exc)
 
 
 def _wait_for_database(app: Flask) -> None:
